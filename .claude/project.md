@@ -28,3 +28,11 @@ sm-ssh-add/
 - **Storage:** Secret Manager (currently Vault KV v2, extensible for AWS Secrets Manager, etc.)
 - **Duplicates:** SHA256 fingerprint check before adding to agent
 - **Errors:** Wrapped with context, printed to stderr
+
+## Secret Manager Data
+
+### KeyValue Fields
+
+- `private_key` - SSH private key in OpenSSH format
+- `public_key` - SSH public key
+- `require_passphrase` - Boolean indicating if key requires passphrase
