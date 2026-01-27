@@ -6,12 +6,16 @@
 sm-ssh-add/
 ├── main.go                 # Entry point (placeholder)
 ├── internal/
-│   └── sm/                 # Secret Manager package
-│       ├── sm.go           # KeyValue struct, Get/Store functions, provider constants
-│       ├── sm_test.go      # Tests for sm package
-│       ├── errors.go       # Custom error definitions
-│       ├── vault.go        # Vault/OpenBao KV v2 client implementation
-│       └── vault_test.go   # Vault client tests
+│   ├── sm/                 # Secret Manager package
+│   │   ├── sm.go           # KeyValue struct, Get/Store functions, provider constants
+│   │   ├── sm_test.go      # Tests for sm package
+│   │   ├── errors.go       # Custom error definitions
+│   │   ├── vault.go        # Vault/OpenBao KV v2 client implementation
+│   │   └── vault_test.go   # Vault client tests
+│   └── config/             # Config file management (completed)
+│       ├── config.go       # Config struct, Read() with validation
+│       ├── config_test.go  # Config tests
+│       └── errors.go       # Config-specific errors
 ├── go.mod                  # Go module definition
 └── go.sum                  # Go module checksums
 ```
@@ -23,9 +27,6 @@ sm-ssh-add/
 │   ├── generate.go         # Generate SSH key → Secret Manager
 │   └── load.go             # Load keys from Secret Manager → ssh-agent
 ├── internal/
-│   ├── config/             # Config file management
-│   │   ├── config.go
-│   │   └── config_test.go
 │   └── ssh/                # Key generation + ssh-agent operations
 │       ├── generate.go
 │       ├── generate_test.go

@@ -40,23 +40,24 @@ Implemented HashiCorp Vault/OpenBao KV v2 client with TDD.
 
 **Note:** Integration tests for GetKV/StoreKV deferred to GitHub Actions workflow with real Vault/OpenBao instance
 
+### 3. ✅ Implement Config File Management
+
+**Files:** `internal/config/config.go`, `internal/config/errors.go`, `internal/config/config_test.go`
+
+Implemented with validation and tests.
+
+- [x] `Config` struct with DefaultProvider, VaultPaths fields
+- [x] `Read()` function - read from ~/.config/sm-ssh-add.json
+- [x] Config validation during read (empty provider, invalid provider)
+- [x] Provider validation using sm package constants
+- [x] Handle missing config file errors (ErrConfigFileNotFound)
+- [x] Handle invalid JSON errors
+- [x] Tests for valid config, invalid JSON, empty provider, invalid provider
+- [x] Tests for GetVaultPaths accessor method
+
 ---
 
 ## Tasks
-
-### 3. ⏳ Implement Config File Management
-
-**Files:** `internal/config/config.go`, `internal/config/config_test.go`
-
-Follow TDD workflow using `superpowers:test-driven-development` skill.
-
-- [ ] Define `Config` struct with DefaultProvider, VaultPaths, AWSPaths fields
-- [ ] Implement `LoadConfig() (*Config, error)` - read from ~/.config/sm-ssh-add.json
-- [ ] Implement config validation (required fields, provider support)
-- [ ] Handle missing config file errors
-- [ ] Handle invalid JSON errors
-- [ ] Add tests for valid/invalid configs
-- [ ] Add tests for missing/invalid config files
 
 ---
 
