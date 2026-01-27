@@ -1,6 +1,10 @@
 # Development TODO
 
-## Tasks
+## Task Completion Process
+
+1. Move completed tasks to "Ready for Review" section
+2. Mark with `[x]` when fully implemented AND tested
+3. No task is complete until tests pass
 
 ### 1. ⏳ Implement Vault Client
 
