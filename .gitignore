@@ -1,0 +1,5 @@
+# Build output
+sm-ssh-add
+
+# Plan files
+.claude/plans/
