@@ -1,37 +1,99 @@
 package cmd
 
 import (
-	"flag"
 	"fmt"
 	"os"
+
+	"github.com/codeignus/sm-ssh-add/internal/config"
+	"github.com/codeignus/sm-ssh-add/internal/sm"
+	"github.com/codeignus/sm-ssh-add/internal/ssh"
 )
 
 // Generate creates a new SSH key pair and displays the public key
-func Generate() error {
-	requirePassphrase := flag.Bool("require-passphrase", false, "prompt for passphrase to protect the private key")
-	flag.CommandLine.Parse(os.Args[2:])
-
-	args := flag.CommandLine.Args()
-
+func Generate(cfg *config.Config, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("usage: sm-ssh-add generate [--require-passphrase] <path> [comment]")
 	}
 
-	if len(args) > 2 {
+	if len(args) > 3 {
 		return fmt.Errorf("too many arguments\nusage: sm-ssh-add generate [--require-passphrase] <path> [comment]")
 	}
 
-	path := args[0]
+	// Parse arguments
+	path := ""
 	comment := ""
-	if len(args) == 2 {
-		comment = args[1]
+	requirePassphrase := false
+
+	for _, arg := range args {
+		switch arg {
+		case "--require-passphrase":
+			requirePassphrase = true
+		default:
+			if path == "" {
+				path = arg
+			} else if comment == "" {
+				comment = arg
+			}
+		}
 	}
 
-	// TODO: GenerateKeyPair
+	if path == "" {
+		return fmt.Errorf("path is required\nusage: sm-ssh-add generate [--require-passphrase] <path> [comment]")
+	}
 
-	// TODO: store key in vault
+	var passphrase []byte
+	var err error
+	if requirePassphrase {
+		passphrase, err = readPassphrase()
+		if err != nil {
+			return fmt.Errorf("failed to read passphrase: %w", err)
+		}
+	}
 
-	fmt.Fprintf(os.Stdout, "Generated SSH key for path: %s\n", path)
+	// Generate the key pair
+	keyPair, err := ssh.GenerateKeyPair(comment, passphrase)
+	if err != nil {
+		return fmt.Errorf("failed to generate key pair: %w", err)
+	}
+
+	// Store in vault
+	kv := &sm.KeyValue{
+		PrivateKey:        keyPair.PrivateKey,
+		PublicKey:         keyPair.PublicKey,
+		RequirePassphrase: requirePassphrase,
+	}
+
+	err = sm.Store(cfg.DefaultProvider, path, kv)
+	if err != nil {
+		return fmt.Errorf("failed to store key in vault: %w", err)
+	}
+
+	// Display the public key
+	fmt.Fprintf(os.Stdout, "%s", keyPair.PublicKey)
+	fmt.Fprintf(os.Stdout, "Key stored at: %s\n", path)
 
 	return nil
+}
+
+// readPassphrase reads a passphrase from stdin twice to confirm
+func readPassphrase() ([]byte, error) {
+	fmt.Fprint(os.Stderr, "Enter passphrase (empty for no passphrase): ")
+	var passphrase1 string
+	_, err := fmt.Scanln(&passphrase1)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Fprint(os.Stderr, "Enter same passphrase again: ")
+	var passphrase2 string
+	_, err = fmt.Scanln(&passphrase2)
+	if err != nil {
+		return nil, err
+	}
+
+	if passphrase1 != passphrase2 {
+		return nil, fmt.Errorf("passphrases do not match")
+	}
+
+	return []byte(passphrase1), nil
 }

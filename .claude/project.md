@@ -4,7 +4,10 @@
 
 ```
 sm-ssh-add/
-├── main.go                 # Entry point (placeholder)
+├── main.go                 # Entry point with CLI routing
+├── cmd/                    # CLI commands
+│   ├── generate.go         # Generate SSH key → Secret Manager
+│   └── load.go             # Load keys from Secret Manager → ssh-agent
 ├── internal/
 │   ├── sm/                 # Secret Manager package
 │   │   ├── sm.go           # KeyValue struct, Get/Store functions, provider constants
@@ -12,10 +15,15 @@ sm-ssh-add/
 │   │   ├── errors.go       # Custom error definitions
 │   │   ├── vault.go        # Vault/OpenBao KV v2 client implementation
 │   │   └── vault_test.go   # Vault client tests
-│   └── config/             # Config file management (completed)
-│       ├── config.go       # Config struct, Read() with validation
-│       ├── config_test.go  # Config tests
-│       └── errors.go       # Config-specific errors
+│   ├── config/             # Config file management
+│   │   ├── config.go       # Config struct, Read() with validation
+│   │   ├── config_test.go  # Config tests
+│   │   └── errors.go       # Config-specific errors
+│   └── ssh/                # Key generation + ssh-agent operations
+│       ├── keygen.go       # Ed25519 key generation with comment/passphrase
+│       ├── keygen_test.go  # Key generation tests
+│       ├── agent.go        # ssh-agent operations (for load command)
+│       └── errors.go       # Error wrapping
 ├── go.mod                  # Go module definition
 └── go.sum                  # Go module checksums
 ```
@@ -23,15 +31,6 @@ sm-ssh-add/
 ### Planned Structure (Not Yet Implemented)
 
 ```
-├── cmd/                    # CLI commands
-│   ├── generate.go         # Generate SSH key → Secret Manager
-│   └── load.go             # Load keys from Secret Manager → ssh-agent
-├── internal/
-│   └── ssh/                # Key generation + ssh-agent operations
-│       ├── generate.go
-│       ├── generate_test.go
-│       ├── agent.go
-│       └── agent_test.go
 └── .github/workflows/      # CI/CD
     └── test.yml            # Integration tests with Vault/OpenBao containers
 ```
