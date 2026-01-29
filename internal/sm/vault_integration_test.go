@@ -20,8 +20,8 @@ func TestStoreKV_stores_key_value_data_successfully(t *testing.T) {
 		RequirePassphrase: true,
 	}
 
-	// Test: Store the data
-	testPath := "secret/ssh/test-store-success"
+	// Test: Store the data (KV v2 requires /data/ in path)
+	testPath := "secret/data/ssh/test-store-success"
 	err = client.StoreKV(testPath, kv)
 
 	// Verify: Should not return error
@@ -45,7 +45,7 @@ func TestStoreKV_stores_key_without_passphrase(t *testing.T) {
 		RequirePassphrase: false,
 	}
 
-	testPath := "secret/ssh/test-store-no-passphrase"
+	testPath := "secret/data/ssh/test-store-no-passphrase"
 	err = client.StoreKV(testPath, kv)
 
 	if err != nil {
@@ -86,7 +86,7 @@ func TestGetKV_retrieves_stored_key_value_data(t *testing.T) {
 		PublicKey:         []byte("test-public-retrieve"),
 		RequirePassphrase: true,
 	}
-	testPath := "secret/ssh/test-retrieve"
+	testPath := "secret/data/ssh/test-retrieve"
 	err = client.StoreKV(testPath, originalKV)
 	if err != nil {
 		t.Fatalf("Setup failed: StoreKV error: %v", err)
@@ -127,7 +127,7 @@ func TestIntegration_works_with_hashicorp_vault(t *testing.T) {
 		PublicKey:         []byte("vault-test-public"),
 		RequirePassphrase: true,
 	}
-	testPath := "secret/ssh/vault-e2e-test"
+	testPath := "secret/data/ssh/vault-e2e-test"
 
 	// Store
 	err = client.StoreKV(testPath, kv)
@@ -141,15 +141,17 @@ func TestIntegration_works_with_hashicorp_vault(t *testing.T) {
 		t.Errorf("GetKV failed: %v", err)
 	}
 
-	// Verify round-trip
-	if string(retrieved.PrivateKey) != string(kv.PrivateKey) {
-		t.Error("PrivateKey round-trip failed")
-	}
-	if string(retrieved.PublicKey) != string(kv.PublicKey) {
-		t.Error("PublicKey round-trip failed")
-	}
-	if retrieved.RequirePassphrase != kv.RequirePassphrase {
-		t.Error("RequirePassphrase round-trip failed")
+	// Verify round-trip (only if retrieved is not nil)
+	if retrieved != nil {
+		if string(retrieved.PrivateKey) != string(kv.PrivateKey) {
+			t.Error("PrivateKey round-trip failed")
+		}
+		if string(retrieved.PublicKey) != string(kv.PublicKey) {
+			t.Error("PublicKey round-trip failed")
+		}
+		if retrieved.RequirePassphrase != kv.RequirePassphrase {
+			t.Error("RequirePassphrase round-trip failed")
+		}
 	}
 
 	// Cleanup
@@ -171,7 +173,7 @@ func TestIntegration_works_with_openbao(t *testing.T) {
 		PublicKey:         []byte("bao-test-public"),
 		RequirePassphrase: false,
 	}
-	testPath := "secret/ssh/bao-e2e-test"
+	testPath := "secret/data/ssh/bao-e2e-test"
 
 	// Store
 	err = client.StoreKV(testPath, kv)
@@ -185,15 +187,17 @@ func TestIntegration_works_with_openbao(t *testing.T) {
 		t.Errorf("GetKV failed: %v", err)
 	}
 
-	// Verify round-trip
-	if string(retrieved.PrivateKey) != string(kv.PrivateKey) {
-		t.Error("PrivateKey round-trip failed")
-	}
-	if string(retrieved.PublicKey) != string(kv.PublicKey) {
-		t.Error("PublicKey round-trip failed")
-	}
-	if retrieved.RequirePassphrase != kv.RequirePassphrase {
-		t.Error("RequirePassphrase round-trip failed")
+	// Verify round-trip (only if retrieved is not nil)
+	if retrieved != nil {
+		if string(retrieved.PrivateKey) != string(kv.PrivateKey) {
+			t.Error("PrivateKey round-trip failed")
+		}
+		if string(retrieved.PublicKey) != string(kv.PublicKey) {
+			t.Error("PublicKey round-trip failed")
+		}
+		if retrieved.RequirePassphrase != kv.RequirePassphrase {
+			t.Error("RequirePassphrase round-trip failed")
+		}
 	}
 
 	// Cleanup
@@ -207,7 +211,7 @@ func TestGetKV_returns_path_not_found_error_for_nonexistent_path(t *testing.T) {
 	}
 
 	// Test: Try to get from path that doesn't exist
-	_, err = client.GetKV("secret/ssh/does-not-exist-12345")
+	_, err = client.GetKV("secret/data/ssh/does-not-exist-12345")
 
 	// Verify: Should return ErrPathNotFound
 	if err != ErrPathNotFound {
@@ -222,7 +226,7 @@ func TestGetKV_rejects_malformed_vault_data_missing_private_key(t *testing.T) {
 	}
 
 	// Setup: Manually write malformed data (missing private_key)
-	testPath := "secret/ssh/test-malformed-no-private"
+	testPath := "secret/data/ssh/test-malformed-no-private"
 	malformedData := map[string]interface{}{
 		"data": map[string]interface{}{
 			"public_key":         "test-public",
@@ -253,7 +257,7 @@ func TestGetKV_rejects_malformed_vault_data_missing_public_key(t *testing.T) {
 	}
 
 	// Setup: Manually write malformed data (missing public_key)
-	testPath := "secret/ssh/test-malformed-no-public"
+	testPath := "secret/data/ssh/test-malformed-no-public"
 	malformedData := map[string]interface{}{
 		"data": map[string]interface{}{
 			"private_key":        "test-private",
