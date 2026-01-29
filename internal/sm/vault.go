@@ -34,7 +34,8 @@ func NewVaultClient() (*VaultClient, error) {
 	}
 
 	config := vaultapi.DefaultConfig()
-	// Don't override address - let DefaultConfig() read from env
+	// Explicitly set address from env to preserve scheme (http:// vs https://)
+	config.Address = addr
 
 	client, err := vaultapi.NewClient(config)
 	if err != nil {
