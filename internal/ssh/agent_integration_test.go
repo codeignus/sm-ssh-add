@@ -3,13 +3,11 @@
 package ssh
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/codeignus/sm-ssh-add/internal/config"
+	"golang.org/x/crypto/ssh"
 )
 
 func TestNewAgent_connects_to_ssh_agent_successfully(t *testing.T) {
@@ -60,14 +58,12 @@ func TestAddKey_adds_key_to_agent_successfully(t *testing.T) {
 		t.Fatalf("Failed to generate key pair: %v", err)
 	}
 
-	// Calculate expected fingerprint
-	pubKeyFields := strings.Fields(string(keyPair.PublicKey))
-	if len(pubKeyFields) < 2 {
-		t.Fatalf("Invalid public key format: %s", string(keyPair.PublicKey))
+	// Calculate expected fingerprint by parsing the public key
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
 	}
-	keyBytes := []byte(pubKeyFields[1])
-	fingerprint := sha256.Sum256(keyBytes)
-	expectedFingerprint := base64.RawStdEncoding.EncodeToString(fingerprint[:])
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
 
 	// Test: Add key to agent
 	err = agent.AddKey(keyPair)
@@ -114,12 +110,19 @@ func TestAddKey_detects_duplicate_key_and_skips(t *testing.T) {
 		t.Fatalf("Failed to add key first time: %v", err)
 	}
 
+	// Calculate expected fingerprint
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
+
 	// Test: Try to add same key again (should skip duplicate)
 	err = agent.AddKey(keyPair)
 
-	// Verify: Should succeed (idempotent or skip)
-	if err != nil {
-		t.Errorf("AddKey duplicate failed: %v", err)
+	// Verify: Should return ErrKeyExistsInAgent
+	if err != ErrKeyExistsInAgent {
+		t.Errorf("Expected ErrKeyExistsInAgent, got: %v", err)
 	}
 
 	// Verify: Still only one key in agent (no duplicates)
@@ -128,15 +131,9 @@ func TestAddKey_detects_duplicate_key_and_skips(t *testing.T) {
 		t.Errorf("Failed to list keys: %v", err)
 	}
 
-	// Count matching keys
-	pubKeyFields := strings.Fields(string(keyPair.PublicKey))
-	keyBytes := []byte(pubKeyFields[1])
-	fingerprint := sha256.Sum256(keyBytes)
-	expectedFingerprint := base64.RawStdEncoding.EncodeToString(fingerprint[:])
-
 	matchingKeys := 0
 	for _, key := range keys {
-		if key.String() == expectedFingerprint {
+		if ssh.FingerprintSHA256(key) == expectedFingerprint {
 			matchingKeys++
 		}
 	}
@@ -174,10 +171,11 @@ func TestList_lists_keys_from_agent(t *testing.T) {
 	}
 
 	// Calculate expected fingerprint
-	pubKeyFields := strings.Fields(string(keyPair.PublicKey))
-	keyBytes := []byte(pubKeyFields[1])
-	fingerprint := sha256.Sum256(keyBytes)
-	expectedFingerprint := base64.RawStdEncoding.EncodeToString(fingerprint[:])
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
 
 	// Test: List keys from agent
 	keys, err := agent.List()
@@ -190,7 +188,7 @@ func TestList_lists_keys_from_agent(t *testing.T) {
 	// Verify: Our key is in the list
 	found := false
 	for _, key := range keys {
-		if key.String() == expectedFingerprint {
+		if ssh.FingerprintSHA256(key) == expectedFingerprint {
 			found = true
 			break
 		}
@@ -259,10 +257,11 @@ func TestEndToEnd_generate_and_load_workflow(t *testing.T) {
 	}
 
 	// Verify: Key is actually loaded
-	pubKeyFields := strings.Fields(string(keyPair.PublicKey))
-	keyBytes := []byte(pubKeyFields[1])
-	fingerprint := sha256.Sum256(keyBytes)
-	expectedFingerprint := base64.RawStdEncoding.EncodeToString(fingerprint[:])
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
 
 	exists, err := agent.KeyExists(expectedFingerprint)
 	if err != nil {
