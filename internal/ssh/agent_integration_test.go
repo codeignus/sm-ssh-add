@@ -85,9 +85,6 @@ func TestAddKey_adds_key_to_agent_successfully(t *testing.T) {
 	if !exists {
 		t.Error("Key was not found in agent after AddKey")
 	}
-
-	// Cleanup: Remove key from agent
-	agent.client.Remove(keyPair.Signer, keyPair.PublicKey)
 }
 
 func TestAddKey_detects_duplicate_key_and_skips(t *testing.T) {
@@ -147,9 +144,6 @@ func TestAddKey_detects_duplicate_key_and_skips(t *testing.T) {
 	if matchingKeys != 1 {
 		t.Errorf("Expected 1 key in agent, found %d (duplicate detection failed)", matchingKeys)
 	}
-
-	// Cleanup
-	agent.client.Remove(keyPair.Signer, keyPair.PublicKey)
 }
 
 func TestList_lists_keys_from_agent(t *testing.T) {
@@ -205,9 +199,6 @@ func TestList_lists_keys_from_agent(t *testing.T) {
 	if !found {
 		t.Errorf("Our key not found in agent listing. Expected fingerprint: %s", expectedFingerprint)
 	}
-
-	// Cleanup
-	agent.client.Remove(keyPair.Signer, keyPair.PublicKey)
 }
 
 func TestClose_closes_connection_cleanly(t *testing.T) {
@@ -280,7 +271,4 @@ func TestEndToEnd_generate_and_load_workflow(t *testing.T) {
 	if !exists {
 		t.Error("Key was not loaded into agent successfully")
 	}
-
-	// Cleanup
-	agent.client.Remove(keyPair.Signer, keyPair.PublicKey)
 }
