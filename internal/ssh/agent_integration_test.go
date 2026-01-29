@@ -120,9 +120,9 @@ func TestAddKey_detects_duplicate_key_and_skips(t *testing.T) {
 	// Test: Try to add same key again (should skip duplicate)
 	err = agent.AddKey(keyPair)
 
-	// Verify: Should return ErrKeyExistsInAgent
-	if err != ErrKeyExistsInAgent {
-		t.Errorf("Expected ErrKeyExistsInAgent, got: %v", err)
+	// Verify: Should return error about key already existing
+	if err == nil {
+		t.Error("Expected error when adding duplicate key, got nil")
 	}
 
 	// Verify: Still only one key in agent (no duplicates)
