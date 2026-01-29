@@ -2,7 +2,7 @@ name: Integration Tests
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   integration-vault:
@@ -27,7 +27,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: Wait for Vault
         run: |
@@ -69,7 +69,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: Wait for OpenBao
         run: |
@@ -88,3 +88,25 @@ jobs:
           BAO_TOKEN: test-token
         run: |
           go test -v -tags=integration ./internal/sm/
+
+  integration-agent:
+    name: Integration Tests (ssh-agent)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Start ssh-agent
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+
+      - name: Run integration tests
+        run: |
+          go test -v -tags=integration ./internal/ssh/
