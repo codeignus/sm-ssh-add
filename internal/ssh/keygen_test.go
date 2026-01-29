@@ -45,8 +45,9 @@ func TestGenerateKeyPair_NoPassphrase(t *testing.T) {
 		t.Errorf("public key doesn't start with ssh-ed25519: %s", publicKeyStr[:20])
 	}
 
-	if !strings.Contains(publicKeyStr, comment) {
-		t.Errorf("public key doesn't contain comment: %s", publicKeyStr)
+	// Verify comment is stored separately
+	if keyPair.Comment != comment {
+		t.Errorf("comment field doesn't match: got %q, want %q", keyPair.Comment, comment)
 	}
 }
 

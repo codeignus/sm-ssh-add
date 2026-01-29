@@ -56,7 +56,8 @@ func (a *Agent) AddKey(keyPair *KeyPair) error {
 	}
 
 	addedKey := agent.AddedKey{
-		PrivateKey:       signer,
+		PrivateKey:       keyPair.PrivateKey,
+		Comment:          keyPair.Comment,
 		LifetimeSecs:     0,
 		ConfirmBeforeUse: false,
 	}
@@ -81,7 +82,10 @@ func (a *Agent) List() ([]*agent.Key, error) {
 // Close closes the connection to the SSH agent
 func (a *Agent) Close() error {
 	if a.conn != nil {
-		return a.conn.Close()
+		err := a.conn.Close()
+		a.client = nil
+		a.conn = nil
+		return err
 	}
 	return nil
 }

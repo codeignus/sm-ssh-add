@@ -13,6 +13,7 @@ type KeyValue struct {
 	PrivateKey        []byte
 	PublicKey         []byte
 	RequirePassphrase bool
+	Comment           string
 }
 
 // Get retrieves key-value data from a provider at the given path

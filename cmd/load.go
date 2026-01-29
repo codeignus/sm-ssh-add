@@ -47,6 +47,7 @@ func loadAndAddKey(path string, cfg *config.Config, agent *ssh.Agent) error {
 	keyPair := &ssh.KeyPair{
 		PrivateKey: keyValue.PrivateKey,
 		PublicKey:  keyValue.PublicKey,
+		Comment:    keyValue.Comment,
 	}
 
 	err = agent.AddKey(keyPair)
