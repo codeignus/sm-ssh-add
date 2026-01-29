@@ -29,9 +29,9 @@ func TestGenerateKeyPair_NoPassphrase(t *testing.T) {
 		t.Error("public key is empty")
 	}
 
-	// Verify Passphrase field is empty (optional field defaults to empty string)
-	if keyPair.Passphrase != "" {
-		t.Errorf("Passphrase field should be empty for unencrypted key, got: %q", keyPair.Passphrase)
+	// Verify Passphrase field is nil (optional field, not set for unencrypted keys)
+	if keyPair.Passphrase != nil {
+		t.Errorf("Passphrase field should be nil for unencrypted key, got: %q", *keyPair.Passphrase)
 	}
 
 	// Verify private key can be parsed without passphrase
@@ -78,9 +78,9 @@ func TestGenerateKeyPair_WithPassphrase(t *testing.T) {
 		t.Error("public key is empty")
 	}
 
-	// Verify Passphrase field is empty (GenerateKeyPair doesn't store it, only encrypts the private key)
-	if keyPair.Passphrase != "" {
-		t.Errorf("Passphrase field should be empty after GenerateKeyPair, got: %q", keyPair.Passphrase)
+	// Verify Passphrase field is nil (GenerateKeyPair doesn't store it, only encrypts the private key)
+	if keyPair.Passphrase != nil {
+		t.Errorf("Passphrase field should be nil after GenerateKeyPair, got: %q", *keyPair.Passphrase)
 	}
 
 	// Verify private key requires passphrase to parse

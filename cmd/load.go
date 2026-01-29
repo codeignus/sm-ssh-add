@@ -59,7 +59,7 @@ func loadAndAddKey(path string, cfg *config.Config, agent *ssh.Agent) error {
 			fmt.Fprintf(os.Stderr, "Failed to read passphrase: %v\n", err)
 			return err
 		}
-		keyPair.Passphrase = passphrase
+		keyPair.Passphrase = &passphrase
 	}
 
 	err = agent.AddKey(keyPair)
