@@ -74,10 +74,16 @@ func Load(cfg *config.Config, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to ssh-agent: %w", err)
 	}
-	defer agent.Close()
+	defer func() {
+		if cerr := agent.Close(); cerr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close ssh-agent: %v\n", cerr)
+		}
+	}()
 
 	for _, path := range paths {
-		loadAndAddKey(path, cfg, agent)
+		if err := loadAndAddKey(path, cfg, agent); err != nil {
+			return err
+		}
 	}
 
 	return nil
