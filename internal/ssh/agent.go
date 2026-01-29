@@ -38,7 +38,15 @@ func NewAgent(cfg *config.Config) (*Agent, error) {
 
 // AddKey adds a key pair to the SSH agent after checking if it already exists
 func (a *Agent) AddKey(keyPair *KeyPair) error {
-	signer, err := ssh.ParsePrivateKey(keyPair.PrivateKey)
+	var signer ssh.Signer
+	var err error
+
+	// Parse private key with or without passphrase
+	if keyPair.Passphrase != "" {
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(keyPair.PrivateKey, []byte(keyPair.Passphrase))
+	} else {
+		signer, err = ssh.ParsePrivateKey(keyPair.PrivateKey)
+	}
 	if err != nil {
 		return wrapError(err, "failed to parse private key")
 	}
@@ -56,7 +64,7 @@ func (a *Agent) AddKey(keyPair *KeyPair) error {
 	}
 
 	addedKey := agent.AddedKey{
-		PrivateKey:       keyPair.PrivateKey,
+		PrivateKey:       signer,
 		Comment:          keyPair.Comment,
 		LifetimeSecs:     0,
 		ConfirmBeforeUse: false,

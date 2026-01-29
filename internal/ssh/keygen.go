@@ -13,6 +13,7 @@ type KeyPair struct {
 	PrivateKey []byte
 	PublicKey  []byte
 	Comment    string
+	Passphrase string
 }
 
 // GenerateKeyPair generates a new ed25519 SSH key pair and marshals it to OpenSSH format
