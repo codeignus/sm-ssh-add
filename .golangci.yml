@@ -1,0 +1,17 @@
+version: "2"
+
+linters:
+  exclusions:
+    rules:
+      - path: '(.+)_test\.go'
+        linters:
+          - errcheck
+        text: 'os\.(Setenv|Unsetenv|Mkdir|WriteFile)'
+
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprintf
+
+run:
+  timeout: 5m
