@@ -2,14 +2,16 @@
 # End-to-End Integration Test for sm-ssh-add
 # This script tests the complete CLI workflow by building and running the actual binary
 #
+# Usage:
+#   ./cmd/test-e2e.sh <provider>
+#
+# Arguments:
+#   provider - The secret manager provider to test (vault|openbao)
+#
 # Environment Variables:
-#   PROVIDER - The secret manager provider to test (vault|openbao)
 #   VAULT_ADDR / VAULT_TOKEN - For Vault provider
 #   BAO_ADDR / BAO_TOKEN - For OpenBao provider
 #   SSH_AUTH_SOCK - Required for ssh-agent tests
-#
-# Usage:
-#   ./cmd/test-e2e.sh
 
 set -e
 
@@ -20,7 +22,17 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Test configuration
-PROVIDER="${PROVIDER:-vault}"
+PROVIDER="$1"
+
+# Map provider name for config (openbao uses vault client)
+get_config_provider() {
+    if [ "$PROVIDER" = "openbao" ]; then
+        echo "vault"
+    else
+        echo "$PROVIDER"
+    fi
+}
+
 TEST_DIR=$(mktemp -d)
 TEST_KEY_PATH_1="secret/data/ssh/e2e-test-key-1"
 TEST_KEY_PATH_2="secret/data/ssh/e2e-test-key-2"
@@ -97,15 +109,9 @@ build_binary() {
 
 # Create test config
 create_config() {
-    # Map openbao to vault since they use the same API client
-    local config_provider="$PROVIDER"
-    if [ "$PROVIDER" = "openbao" ]; then
-        config_provider="vault"
-    fi
-
     cat > "$CONFIG_FILE" <<EOF
 {
-  "default_provider": "$config_provider",
+  "default_provider": "$(get_config_provider)",
   "vault_paths": []
 }
 EOF
@@ -113,7 +119,7 @@ EOF
     export HOME="$TEST_DIR"
     mkdir -p "$TEST_DIR/.config"
     cp "$CONFIG_FILE" "$TEST_DIR/.config/sm-ssh-add.json"
-    print_success "Config created with provider: $config_provider (testing with $PROVIDER backend)"
+    print_success "Config created with provider: $(get_config_provider) (testing with $PROVIDER backend)"
 }
 
 # Test 1: Generate and load key without passphrase
@@ -167,7 +173,7 @@ test_load_from_config() {
     # Update config to include both paths
     cat > "$TEST_DIR/.config/sm-ssh-add.json" <<EOF
 {
-  "default_provider": "$PROVIDER",
+  "default_provider": "$(get_config_provider)",
   "vault_paths": ["$TEST_KEY_PATH_1", "$TEST_KEY_PATH_2"]
 }
 EOF

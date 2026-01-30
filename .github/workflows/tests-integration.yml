@@ -143,8 +143,7 @@ jobs:
 
       - name: Run E2E tests
         env:
-          PROVIDER: ${{ matrix.provider }}
           ${{ matrix.addr_env }}: http://localhost:8200
           ${{ matrix.token_env }}: test-token
         run: |
-          ./cmd/test-e2e.sh
+          ./cmd/test-e2e.sh ${{ matrix.provider }}
