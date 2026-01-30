@@ -47,6 +47,19 @@ func loadAndAddKey(path string, cfg *config.Config, agent *ssh.Agent) error {
 	keyPair := &ssh.KeyPair{
 		PrivateKey: keyValue.PrivateKey,
 		PublicKey:  keyValue.PublicKey,
+		Comment:    keyValue.Comment,
+	}
+
+	// If key requires passphrase, prompt user for it
+	if keyValue.RequirePassphrase {
+		var passphrase string
+		fmt.Fprintf(os.Stdout, "Enter passphrase for key %s: ", path)
+		_, err := fmt.Scanln(&passphrase)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to read passphrase: %v\n", err)
+			return err
+		}
+		keyPair.Passphrase = &passphrase
 	}
 
 	err = agent.AddKey(keyPair)

@@ -12,6 +12,8 @@ import (
 type KeyPair struct {
 	PrivateKey []byte
 	PublicKey  []byte
+	Comment    string
+	Passphrase *string
 }
 
 // GenerateKeyPair generates a new ed25519 SSH key pair and marshals it to OpenSSH format
@@ -44,17 +46,9 @@ func GenerateKeyPair(comment string, passphrase []byte) (*KeyPair, error) {
 
 	publicKeyBytes := ssh.MarshalAuthorizedKey(pubKeySSH)
 
-	// MarshalAuthorizedKey adds a newline, but we want to add the comment before that newline
-	// Remove the trailing newline, add comment, then add it back
-	if len(publicKeyBytes) > 0 && publicKeyBytes[len(publicKeyBytes)-1] == '\n' {
-		publicKeyBytes = publicKeyBytes[:len(publicKeyBytes)-1]
-	}
-	publicKeyBytes = append(publicKeyBytes, ' ')
-	publicKeyBytes = append(publicKeyBytes, comment...)
-	publicKeyBytes = append(publicKeyBytes, '\n')
-
 	return &KeyPair{
 		PrivateKey: privateKeyPEM,
 		PublicKey:  publicKeyBytes,
+		Comment:    comment,
 	}, nil
 }

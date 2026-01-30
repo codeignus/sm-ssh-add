@@ -29,7 +29,12 @@ func TestGenerateKeyPair_NoPassphrase(t *testing.T) {
 		t.Error("public key is empty")
 	}
 
-	// Verify private key can be parsed
+	// Verify Passphrase field is nil (optional field, not set for unencrypted keys)
+	if keyPair.Passphrase != nil {
+		t.Errorf("Passphrase field should be nil for unencrypted key, got: %q", *keyPair.Passphrase)
+	}
+
+	// Verify private key can be parsed without passphrase
 	signer, err := ssh.ParsePrivateKey(keyPair.PrivateKey)
 	if err != nil {
 		t.Errorf("failed to parse generated private key: %v", err)
@@ -45,8 +50,9 @@ func TestGenerateKeyPair_NoPassphrase(t *testing.T) {
 		t.Errorf("public key doesn't start with ssh-ed25519: %s", publicKeyStr[:20])
 	}
 
-	if !strings.Contains(publicKeyStr, comment) {
-		t.Errorf("public key doesn't contain comment: %s", publicKeyStr)
+	// Verify comment is stored separately
+	if keyPair.Comment != comment {
+		t.Errorf("comment field doesn't match: got %q, want %q", keyPair.Comment, comment)
 	}
 }
 
@@ -70,6 +76,11 @@ func TestGenerateKeyPair_WithPassphrase(t *testing.T) {
 
 	if len(keyPair.PublicKey) == 0 {
 		t.Error("public key is empty")
+	}
+
+	// Verify Passphrase field is nil (GenerateKeyPair doesn't store it, only encrypts the private key)
+	if keyPair.Passphrase != nil {
+		t.Errorf("Passphrase field should be nil after GenerateKeyPair, got: %q", *keyPair.Passphrase)
 	}
 
 	// Verify private key requires passphrase to parse

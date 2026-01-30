@@ -1,0 +1,273 @@
+//go:build integration
+
+package ssh
+
+import (
+	"os"
+	"testing"
+
+	"github.com/codeignus/sm-ssh-add/internal/config"
+	"golang.org/x/crypto/ssh"
+)
+
+func TestNewAgent_connects_to_ssh_agent_successfully(t *testing.T) {
+	// Setup: Ensure SSH_AUTH_SOCK is set (CI workflow provides this)
+	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+	if sshAuthSock == "" {
+		t.Skip("SSH_AUTH_SOCK not set - skipping agent integration test")
+	}
+
+	// Test: Create agent connection
+	cfg := &config.Config{
+		DefaultProvider: "vault",
+		VaultPaths:      []string{},
+	}
+	agent, err := NewAgent(cfg)
+
+	// Verify: Connection succeeds
+	if err != nil {
+		t.Fatalf("Failed to connect to ssh-agent: %v", err)
+	}
+	if agent == nil {
+		t.Fatal("Agent is nil but no error returned")
+	}
+
+	// Cleanup
+	agent.Close()
+}
+
+func TestAddKey_adds_key_to_agent_successfully(t *testing.T) {
+	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+	if sshAuthSock == "" {
+		t.Skip("SSH_AUTH_SOCK not set - skipping agent integration test")
+	}
+
+	cfg := &config.Config{
+		DefaultProvider: "vault",
+		VaultPaths:      []string{},
+	}
+	agent, err := NewAgent(cfg)
+	if err != nil {
+		t.Fatalf("Failed to connect to ssh-agent: %v", err)
+	}
+	defer agent.Close()
+
+	// Setup: Generate test key pair
+	keyPair, err := GenerateKeyPair("test@integration", nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key pair: %v", err)
+	}
+
+	// Calculate expected fingerprint by parsing the public key
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
+
+	// Test: Add key to agent
+	err = agent.AddKey(keyPair)
+
+	// Verify: No error
+	if err != nil {
+		t.Errorf("AddKey failed: %v", err)
+	}
+
+	// Verify: Key exists in agent
+	exists, err := agent.KeyExists(expectedFingerprint)
+	if err != nil {
+		t.Errorf("KeyExists check failed: %v", err)
+	}
+	if !exists {
+		t.Error("Key was not found in agent after AddKey")
+	}
+}
+
+func TestAddKey_detects_duplicate_key_and_skips(t *testing.T) {
+	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+	if sshAuthSock == "" {
+		t.Skip("SSH_AUTH_SOCK not set - skipping agent integration test")
+	}
+
+	cfg := &config.Config{
+		DefaultProvider: "vault",
+		VaultPaths:      []string{},
+	}
+	agent, err := NewAgent(cfg)
+	if err != nil {
+		t.Fatalf("Failed to connect to ssh-agent: %v", err)
+	}
+	defer agent.Close()
+
+	// Setup: Generate and add key first time
+	keyPair, err := GenerateKeyPair("duplicate-test@integration", nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key pair: %v", err)
+	}
+
+	err = agent.AddKey(keyPair)
+	if err != nil {
+		t.Fatalf("Failed to add key first time: %v", err)
+	}
+
+	// Calculate expected fingerprint
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
+
+	// Test: Try to add same key again (should skip duplicate)
+	err = agent.AddKey(keyPair)
+
+	// Verify: Should return error about key already existing
+	if err == nil {
+		t.Error("Expected error when adding duplicate key, got nil")
+	}
+
+	// Verify: Still only one key in agent (no duplicates)
+	keys, err := agent.List()
+	if err != nil {
+		t.Errorf("Failed to list keys: %v", err)
+	}
+
+	matchingKeys := 0
+	for _, key := range keys {
+		if ssh.FingerprintSHA256(key) == expectedFingerprint {
+			matchingKeys++
+		}
+	}
+
+	if matchingKeys != 1 {
+		t.Errorf("Expected 1 key in agent, found %d (duplicate detection failed)", matchingKeys)
+	}
+}
+
+func TestList_lists_keys_from_agent(t *testing.T) {
+	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+	if sshAuthSock == "" {
+		t.Skip("SSH_AUTH_SOCK not set - skipping agent integration test")
+	}
+
+	cfg := &config.Config{
+		DefaultProvider: "vault",
+		VaultPaths:      []string{},
+	}
+	agent, err := NewAgent(cfg)
+	if err != nil {
+		t.Fatalf("Failed to connect to ssh-agent: %v", err)
+	}
+	defer agent.Close()
+
+	// Setup: Generate and add known key
+	keyPair, err := GenerateKeyPair("list-test@integration", nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key pair: %v", err)
+	}
+
+	err = agent.AddKey(keyPair)
+	if err != nil {
+		t.Fatalf("Failed to add key: %v", err)
+	}
+
+	// Calculate expected fingerprint
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
+
+	// Test: List keys from agent
+	keys, err := agent.List()
+
+	// Verify: No error
+	if err != nil {
+		t.Errorf("List failed: %v", err)
+	}
+
+	// Verify: Our key is in the list
+	found := false
+	for _, key := range keys {
+		if ssh.FingerprintSHA256(key) == expectedFingerprint {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("Our key not found in agent listing. Expected fingerprint: %s", expectedFingerprint)
+	}
+}
+
+func TestClose_closes_connection_cleanly(t *testing.T) {
+	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+	if sshAuthSock == "" {
+		t.Skip("SSH_AUTH_SOCK not set - skipping agent integration test")
+	}
+
+	cfg := &config.Config{
+		DefaultProvider: "vault",
+		VaultPaths:      []string{},
+	}
+	agent, err := NewAgent(cfg)
+	if err != nil {
+		t.Fatalf("Failed to connect to ssh-agent: %v", err)
+	}
+
+	// Test: Close connection
+	err = agent.Close()
+
+	// Verify: No error on close
+	if err != nil {
+		t.Errorf("Close failed: %v", err)
+	}
+
+	// Verify: Client is nil after close
+	if agent.client != nil {
+		t.Error("Agent client should be nil after Close")
+	}
+}
+
+func TestEndToEnd_generate_and_load_workflow(t *testing.T) {
+	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+	if sshAuthSock == "" {
+		t.Skip("SSH_AUTH_SOCK not set - skipping agent integration test")
+	}
+
+	cfg := &config.Config{
+		DefaultProvider: "vault",
+		VaultPaths:      []string{},
+	}
+	agent, err := NewAgent(cfg)
+	if err != nil {
+		t.Fatalf("Failed to connect to ssh-agent: %v", err)
+	}
+	defer agent.Close()
+
+	// Test: Complete workflow - generate and load
+	comment := "e2e-test@integration"
+	keyPair, err := GenerateKeyPair(comment, nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+
+	err = agent.AddKey(keyPair)
+	if err != nil {
+		t.Errorf("Failed to load key into agent: %v", err)
+	}
+
+	// Verify: Key is actually loaded
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(keyPair.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	expectedFingerprint := ssh.FingerprintSHA256(pubKey)
+
+	exists, err := agent.KeyExists(expectedFingerprint)
+	if err != nil {
+		t.Errorf("Failed to verify key in agent: %v", err)
+	}
+	if !exists {
+		t.Error("Key was not loaded into agent successfully")
+	}
+}

@@ -1,0 +1,149 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  integration-vault-compatible:
+    name: Integration Tests (${{ matrix.provider }})
+    runs-on: ubuntu-latest
+
+    # Vault and OpenBao are API-compatible, so we use a matrix to avoid duplication
+    # Future providers (AWS, Azure, etc.) will need separate jobs
+    strategy:
+      matrix:
+        include:
+          - provider: Vault
+            image: hashicorp/vault:latest
+            addr_env: VAULT_ADDR
+            token_env: VAULT_TOKEN
+            service_env_prefix: VAULT
+          - provider: OpenBao
+            image: openbao/openbao:latest
+            addr_env: BAO_ADDR
+            token_env: BAO_TOKEN
+            service_env_prefix: BAO
+
+    services:
+      vault-compatible:
+        image: ${{ matrix.image }}
+        ports:
+          - 8200:8200
+        env:
+          ${{ format('{0}_DEV_ROOT_TOKEN_ID', matrix.service_env_prefix) }}: test-token
+          ${{ format('{0}_DEV_LISTEN_ADDRESS', matrix.service_env_prefix) }}: 0.0.0.0:8200
+        options: >-
+          --cap-add=IPC_LOCK
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Wait for ${{ matrix.provider }}
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:8200/v1/sys/health > /dev/null; then
+              echo "${{ matrix.provider }} is ready"
+              break
+            fi
+            echo "Waiting for ${{ matrix.provider }}... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run integration tests
+        env:
+          ${{ matrix.addr_env }}: http://localhost:8200
+          ${{ matrix.token_env }}: test-token
+        run: |
+          go test -v -tags=integration ./internal/sm/
+
+  integration-ssh-agent:
+    name: Integration Tests (ssh-agent)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Start ssh-agent
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+
+      - name: Run integration tests
+        run: |
+          go test -v -tags=integration ./internal/ssh/
+
+  e2e-cli:
+    name: End-to-End CLI Tests (${{ matrix.provider }})
+    runs-on: ubuntu-latest
+
+    # Vault and OpenBao are API-compatible, so we use a matrix to avoid duplication
+    # Future providers (AWS, Azure, etc.) will need separate jobs
+    strategy:
+      matrix:
+        include:
+          - provider: vault
+            image: hashicorp/vault:latest
+            addr_env: VAULT_ADDR
+            token_env: VAULT_TOKEN
+            service_env_prefix: VAULT
+          - provider: openbao
+            image: openbao/openbao:latest
+            addr_env: BAO_ADDR
+            token_env: BAO_TOKEN
+            service_env_prefix: BAO
+
+    services:
+      vault-compatible:
+        image: ${{ matrix.image }}
+        ports:
+          - 8200:8200
+        env:
+          ${{ format('{0}_DEV_ROOT_TOKEN_ID', matrix.service_env_prefix) }}: test-token
+          ${{ format('{0}_DEV_LISTEN_ADDRESS', matrix.service_env_prefix) }}: 0.0.0.0:8200
+        options: >-
+          --cap-add=IPC_LOCK
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Wait for ${{ matrix.provider }}
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:8200/v1/sys/health > /dev/null; then
+              echo "${{ matrix.provider }} is ready"
+              break
+            fi
+            echo "Waiting for ${{ matrix.provider }}... ($i/30)"
+            sleep 2
+          done
+
+      - name: Start ssh-agent
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+
+      - name: Run E2E tests
+        env:
+          ${{ matrix.addr_env }}: http://localhost:8200
+          ${{ matrix.token_env }}: test-token
+        run: |
+          ./cmd/test-e2e.sh ${{ matrix.provider }}

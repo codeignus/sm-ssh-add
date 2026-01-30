@@ -61,6 +61,7 @@ func Generate(cfg *config.Config, args []string) error {
 		PrivateKey:        keyPair.PrivateKey,
 		PublicKey:         keyPair.PublicKey,
 		RequirePassphrase: requirePassphrase,
+		Comment:           comment,
 	}
 
 	err = sm.Store(cfg.DefaultProvider, path, kv)

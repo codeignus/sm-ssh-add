@@ -34,7 +34,8 @@ func NewVaultClient() (*VaultClient, error) {
 	}
 
 	config := vaultapi.DefaultConfig()
-	// Don't override address - let DefaultConfig() read from env
+	// Explicitly set address from env to preserve scheme (http:// vs https://)
+	config.Address = addr
 
 	client, err := vaultapi.NewClient(config)
 	if err != nil {
@@ -86,10 +87,16 @@ func (v *VaultClient) GetKV(path string) (*KeyValue, error) {
 		requirePassphrase = rp
 	}
 
+	comment := ""
+	if c, ok := data["comment"].(string); ok {
+		comment = c
+	}
+
 	return &KeyValue{
 		PrivateKey:        []byte(privateKey),
 		PublicKey:         []byte(publicKey),
 		RequirePassphrase: requirePassphrase,
+		Comment:           comment,
 	}, nil
 }
 
@@ -99,6 +106,7 @@ func (v *VaultClient) StoreKV(path string, kv *KeyValue) error {
 		"private_key":        string(kv.PrivateKey),
 		"public_key":         string(kv.PublicKey),
 		"require_passphrase": kv.RequirePassphrase,
+		"comment":            kv.Comment,
 	}
 
 	data := map[string]interface{}{
