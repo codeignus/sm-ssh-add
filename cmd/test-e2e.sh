@@ -97,9 +97,15 @@ build_binary() {
 
 # Create test config
 create_config() {
+    # Map openbao to vault since they use the same API client
+    local config_provider="$PROVIDER"
+    if [ "$PROVIDER" = "openbao" ]; then
+        config_provider="vault"
+    fi
+
     cat > "$CONFIG_FILE" <<EOF
 {
-  "default_provider": "$PROVIDER",
+  "default_provider": "$config_provider",
   "vault_paths": []
 }
 EOF
@@ -107,7 +113,7 @@ EOF
     export HOME="$TEST_DIR"
     mkdir -p "$TEST_DIR/.config"
     cp "$CONFIG_FILE" "$TEST_DIR/.config/sm-ssh-add.json"
-    print_success "Config created with provider: $PROVIDER"
+    print_success "Config created with provider: $config_provider (testing with $PROVIDER backend)"
 }
 
 # Test 1: Generate and load key without passphrase
