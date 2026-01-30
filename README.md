@@ -20,13 +20,13 @@ Download the latest release from the [releases page](https://github.com/codeignu
 
 ```bash
 # Linux (x86_64)
-curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_1.0.0_Linux_x86_64.tar.gz
-tar -xzf sm-ssh-add_1.0.0_Linux_x86_64.tar.gz
+curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_0.1.0_Linux_x86_64.tar.gz
+tar -xzf sm-ssh-add_0.1.0_Linux_x86_64.tar.gz
 sudo mv sm-ssh-add /usr/local/bin/
 
 # macOS (Apple Silicon)
-curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_1.0.0_Darwin_arm64.tar.gz
-tar -xzf sm-ssh-add_1.0.0_Darwin_arm64.tar.gz
+curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_0.1.0_Darwin_arm64.tar.gz
+tar -xzf sm-ssh-add_0.1.0_Darwin_arm64.tar.gz
 sudo mv sm-ssh-add /usr/local/bin/
 ```
 
