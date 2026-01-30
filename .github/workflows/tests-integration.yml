@@ -38,12 +38,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.22"
+          go-version: "1.25.5"
 
       - name: Wait for ${{ matrix.provider }}
         run: |
@@ -69,12 +69,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.22"
+          go-version: "1.25.5"
 
       - name: Start ssh-agent
         run: |
@@ -118,12 +118,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.22"
+          go-version: "1.25.5"
 
       - name: Wait for ${{ matrix.provider }}
         run: |

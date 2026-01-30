@@ -1,6 +1,9 @@
-# Build output
-sm-ssh-add
-
 # Git
 ## personal rules
 .gitignore.local
+
+# Build output
+sm-ssh-add
+
+# Added by goreleaser init:
+dist/
