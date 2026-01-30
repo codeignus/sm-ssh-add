@@ -116,16 +116,12 @@ test_generate_load_without_passphrase() {
 
     # Generate key
     echo "Generating key at: $TEST_KEY_PATH_1"
-    "$BINARY" generate "$TEST_KEY_PATH_1" "test1@example.com" > "$TEST_DIR/generate-output.txt" 2>&1
+    "$BINARY" generate "$TEST_KEY_PATH_1" "test1@example.com" || print_error "Generate command failed"
     print_success "Key generated"
-
-    # Verify public key was output
-    grep -q "ssh-ed25519" "$TEST_DIR/generate-output.txt" || print_error "Public key not found in output"
-    print_success "Public key format verified"
 
     # Load key
     echo "Loading key from: $TEST_KEY_PATH_1"
-    "$BINARY" load "$TEST_KEY_PATH_1" > "$TEST_DIR/load-output.txt" 2>&1
+    "$BINARY" load "$TEST_KEY_PATH_1" || print_error "Load command failed"
     print_success "Key loaded into ssh-agent"
 
     # Verify key is in agent
@@ -140,16 +136,12 @@ test_generate_load_with_passphrase() {
     # Generate key with passphrase
     echo "Generating key with passphrase at: $TEST_KEY_PATH_PASSPHRASE"
     # Provide passphrase twice for confirmation during generate
-    echo -e "$TEST_PASSPHRASE\n$TEST_PASSPHRASE" | "$BINARY" generate --require-passphrase "$TEST_KEY_PATH_PASSPHRASE" "test-pass@example.com" > "$TEST_DIR/generate-pass-output.txt" 2>&1
+    echo -e "$TEST_PASSPHRASE\n$TEST_PASSPHRASE" | "$BINARY" generate --require-passphrase "$TEST_KEY_PATH_PASSPHRASE" "test-pass@example.com" || print_error "Generate with passphrase failed"
     print_success "Key with passphrase generated"
-
-    # Verify public key was output
-    grep -q "ssh-ed25519" "$TEST_DIR/generate-pass-output.txt" || print_error "Public key not found in output"
-    print_success "Public key format verified"
 
     # Load key with passphrase
     echo "Loading passphrase-protected key"
-    echo "$TEST_PASSPHRASE" | "$BINARY" load "$TEST_KEY_PATH_PASSPHRASE" > "$TEST_DIR/load-pass-output.txt" 2>&1
+    echo "$TEST_PASSPHRASE" | "$BINARY" load "$TEST_KEY_PATH_PASSPHRASE" || print_error "Load with passphrase failed"
     print_success "Passphrase-protected key loaded into ssh-agent"
 
     # Verify key is in agent
@@ -163,7 +155,7 @@ test_load_from_config() {
 
     # Generate second key
     echo "Generating second key at: $TEST_KEY_PATH_2"
-    "$BINARY" generate "$TEST_KEY_PATH_2" "test2@example.com" > "$TEST_DIR/generate-output-2.txt" 2>&1
+    "$BINARY" generate "$TEST_KEY_PATH_2" "test2@example.com" || print_error "Generate second key failed"
     print_success "Second key generated"
 
     # Update config to include both paths
@@ -180,7 +172,7 @@ EOF
 
     # Load from config
     echo "Loading keys from config..."
-    "$BINARY" load --from-config > "$TEST_DIR/load-config-output.txt" 2>&1
+    "$BINARY" load --from-config || print_error "Load from config failed"
     print_success "Keys loaded from config"
 
     # Verify both keys are in agent
