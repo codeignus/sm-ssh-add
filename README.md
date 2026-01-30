@@ -12,6 +12,33 @@ A CLI tool that generates SSH keys, stores them in Secret Managers like HashiCor
 - Multi-key loading from configured paths
 - JSON configuration for flexible setup
 
+## Installation
+
+### Pre-built Binaries
+
+Download the latest release from the [releases page](https://github.com/codeignus/sm-ssh-add/releases).
+
+```bash
+# Linux (x86_64)
+curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_1.0.0_Linux_x86_64.tar.gz
+tar -xzf sm-ssh-add_1.0.0_Linux_x86_64.tar.gz
+sudo mv sm-ssh-add /usr/local/bin/
+
+# macOS (Apple Silicon)
+curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_1.0.0_Darwin_arm64.tar.gz
+tar -xzf sm-ssh-add_1.0.0_Darwin_arm64.tar.gz
+sudo mv sm-ssh-add /usr/local/bin/
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/codeignus/sm-ssh-add.git
+cd sm-ssh-add
+go build -o sm-ssh-add .
+sudo mv sm-ssh-add /usr/local/bin/
+```
+
 ## Usage
 
 ### Prerequisites
