@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+// mockConfig is a test helper that implements the VaultApproleConfig interface
+type mockConfig struct {
+	VaultApproleRoleID string
+}
+
+// GetVaultApproleRoleID makes mockConfig implement the VaultApproleConfig interface
+func (c *mockConfig) GetVaultApproleRoleID() string {
+	return c.VaultApproleRoleID
+}
+
 func TestNewVaultClient_reads_environment_variables(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -56,7 +66,7 @@ func TestNewVaultClient_reads_environment_variables(t *testing.T) {
 				os.Setenv("VAULT_TOKEN", "test-token")
 			}
 
-			client, err := NewVaultClient()
+			client, err := NewVaultClient(nil)
 
 			// Will fail connection (no real Vault), but should not fail on missing addr/token
 			if tt.expectError {
@@ -88,7 +98,7 @@ func TestNewVaultClient_rejects_missing_address(t *testing.T) {
 	os.Unsetenv("VAULT_ADDR")
 	os.Setenv("BAO_TOKEN", "test-token")
 
-	client, err := NewVaultClient()
+	client, err := NewVaultClient(nil)
 
 	if err == nil {
 		t.Error("Expected error when no address set")
@@ -112,12 +122,51 @@ func TestNewVaultClient_rejects_missing_token(t *testing.T) {
 	os.Unsetenv("BAO_TOKEN")
 	os.Unsetenv("VAULT_TOKEN")
 
-	client, err := NewVaultClient()
+	client, err := NewVaultClient(nil)
 
 	if err == nil {
 		t.Error("Expected error when no token set")
 	}
 	if client != nil {
 		t.Error("Expected nil client when token missing")
+	}
+}
+
+func TestNewVaultClient_withAppRoleConfig_performsLogin(t *testing.T) {
+	// Save original env vars
+	oldAddr := os.Getenv("BAO_ADDR")
+	oldVaultAddr := os.Getenv("VAULT_ADDR")
+	oldToken := os.Getenv("BAO_TOKEN")
+	oldVaultToken := os.Getenv("VAULT_TOKEN")
+	oldSecretID := os.Getenv("VAULT_APPROLE_SECRET_ID")
+	defer func() {
+		os.Setenv("BAO_ADDR", oldAddr)
+		os.Setenv("VAULT_ADDR", oldVaultAddr)
+		os.Setenv("BAO_TOKEN", oldToken)
+		os.Setenv("VAULT_TOKEN", oldVaultToken)
+		os.Setenv("VAULT_APPROLE_SECRET_ID", oldSecretID)
+	}()
+
+	// Set address and secret ID (from env to avoid prompt), but NOT token
+	os.Setenv("VAULT_ADDR", "http://localhost:8200")
+	os.Unsetenv("BAO_TOKEN")
+	os.Unsetenv("VAULT_TOKEN")
+	os.Setenv("VAULT_APPROLE_SECRET_ID", "test-secret-id")
+
+	// Create a mock config with Vault Approle role_id
+	cfg := &mockConfig{
+		VaultApproleRoleID: "test-role-id",
+	}
+
+	// Should attempt AppRole login (will fail connection, but that's ok)
+	_, err := NewVaultClient(cfg)
+
+	// Should not error on missing token
+	// Will likely error on connection (no real Vault), but that's different from "token required"
+	if err != nil {
+		// Error is ok (no real Vault), but verify it's not "token required" error
+		if err.Error() == "vault token required: set BAO_TOKEN or VAULT_TOKEN" {
+			t.Error("Should not require token when AppRole is configured")
+		}
 	}
 }

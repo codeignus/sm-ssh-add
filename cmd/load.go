@@ -38,7 +38,7 @@ func parseLoadArgs(args []string, cfg *config.Config) ([]string, error) {
 
 // loadAndAddKey loads a key from the given path and adds it to the agent
 func loadAndAddKey(path string, cfg *config.Config, agent *ssh.Agent) error {
-	keyValue, err := sm.Get(cfg.DefaultProvider, path)
+	keyValue, err := sm.Get(cfg, path)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load key from %s: %v\n", path, err)
 		return err

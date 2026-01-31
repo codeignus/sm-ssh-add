@@ -56,6 +56,25 @@ jobs:
             sleep 2
           done
 
+      - name: Setup AppRole (Vault only)
+        if: matrix.provider == 'Vault'
+        env:
+          VAULT_ADDR: http://localhost:8200
+          VAULT_TOKEN: test-token
+        run: |
+          vault auth enable approle
+          vault write auth/approle/role/sm-ssh-add token_policies="sm-ssh-add-policy" token_ttl=1h
+          vault policy write sm-ssh-add-policy - <<'EOF'
+          path "secret/data/ssh/*" {
+            capabilities = ["create", "read", "update", "delete", "list"]
+          }
+          path "secret/metadata/ssh/*" {
+            capabilities = ["list"]
+          }
+          EOF
+          echo "VAULT_APPROLE_ROLE_ID=$(vault read -field=role_id auth/approle/role/sm-ssh-add/role-id)" >> $GITHUB_ENV
+          echo "VAULT_APPROLE_SECRET_ID=$(vault write -f -field=secret_id auth/approle/role/sm-ssh-add/secret-id)" >> $GITHUB_ENV
+
       - name: Run integration tests
         env:
           ${{ matrix.addr_env }}: http://localhost:8200

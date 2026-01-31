@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/codeignus/sm-ssh-add/internal/config"
-	"github.com/codeignus/sm-ssh-add/internal/sm"
 )
 
 // TestLoadFromConfig_EmptyPaths tests --from-config with empty paths
 func TestLoadFromConfig_EmptyPaths(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{},
 	}
 
@@ -28,7 +27,7 @@ func TestLoadFromConfig_EmptyPaths(t *testing.T) {
 // This test requires real Vault instance - will run in GHA
 func TestLoadFromConfig_WithPaths(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{"secret/ssh/test"},
 	}
 
@@ -44,7 +43,7 @@ func TestLoadFromConfig_WithPaths(t *testing.T) {
 // TestLoadDirectPath tests loading from a direct path argument
 func TestLoadDirectPath(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{}, // Should not be used
 	}
 
@@ -59,7 +58,7 @@ func TestLoadDirectPath(t *testing.T) {
 // TestLoadNoArguments tests error when no arguments provided
 func TestLoadNoArguments(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{"secret/ssh/test"},
 	}
 
@@ -73,7 +72,7 @@ func TestLoadNoArguments(t *testing.T) {
 // TestLoadBothConfigAndPath tests error when both --from-config and path provided
 func TestLoadBothConfigAndPath(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{"secret/ssh/test"},
 	}
 
@@ -90,7 +89,7 @@ func TestLoadBothConfigAndPath(t *testing.T) {
 // TestLoadUnknownFlag tests error for unknown flag
 func TestLoadUnknownFlag(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{"secret/ssh/test"},
 	}
 

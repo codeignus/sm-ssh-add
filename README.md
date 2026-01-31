@@ -43,7 +43,7 @@ sudo mv sm-ssh-add /usr/local/bin/
 
 ### Prerequisites
 
-Before using `sm-ssh-add`, you must create a configuration file:
+Before using `sm-ssh-add`, create a configuration file:
 
 **Location:** `~/.config/sm-ssh-add.json`
 
@@ -52,20 +52,6 @@ Before using `sm-ssh-add`, you must create a configuration file:
   "default_provider": "vault",
   "vault_paths": []
 }
-```
-
-The `default_provider` field is required. Currently supported providers: `"vault"`. 
-
-The paths field name is `<provider>_paths` (e.g., `vault_paths`, `aws_paths`).
-
-### Basic Workflow
-
-```bash
-# 1. Generate a new SSH key and store it in your configured secret manager
-sm-ssh-add generate secret/ssh/github "user@example.com"
-
-# 2. Load all configured keys into ssh-agent
-sm-ssh-add load
 ```
 
 ## Commands
@@ -160,6 +146,7 @@ The configuration file must be created at `~/.config/sm-ssh-add.json` before run
 |-------|------|----------|-------------|
 | `default_provider` | string | ✅ | Secret manager to use ("vault" only) |
 | `<provider>_paths` | string[] | ✅ | List of paths to load keys from (e.g., `vault_paths`, `aws_paths`) |
+| `vault_approle_role_id` | string | ❌ | AppRole Role ID for Vault auth (uses AppRole instead of VAULT_TOKEN; Secret ID via VAULT_APPROLE_SECRET_ID or prompt) |
 
 ### Environment Variables
 
@@ -168,4 +155,5 @@ The configuration file must be created at `~/.config/sm-ssh-add.json` before run
 | `HOME` | Locating config file |
 | `SSH_AUTH_SOCK` | Default SSH agent socket (fallback) |
 | `VAULT_ADDR` / `BAO_ADDR` | Vault or OpenBao server address |
-| `VAULT_TOKEN` / `BAO_TOKEN` | Vault or OpenBao authentication token |
+| `VAULT_TOKEN` / `BAO_TOKEN` | Authentication token (used when `vault_approle_role_id` is not set) |
+| `VAULT_APPROLE_SECRET_ID` | AppRole secret ID (optional when `vault_approle_role_id` is set; prompted if not provided) |

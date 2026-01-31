@@ -2,6 +2,8 @@ package sm
 
 import (
 	"testing"
+
+	"github.com/codeignus/sm-ssh-add/internal/config"
 )
 
 func TestKeyValue_Struct(t *testing.T) {
@@ -66,26 +68,28 @@ func TestKeyValue_Struct(t *testing.T) {
 }
 
 func TestGet_UnsupportedProvider(t *testing.T) {
-	_, err := Get("aws", "some/path")
+	cfg := &config.Config{DefaultProvider: "aws"}
+	_, err := Get(cfg, "some/path")
 	if err == nil {
 		t.Error("expected error for unsupported provider, got nil")
 	}
 }
 
 func TestStore_UnsupportedProvider(t *testing.T) {
+	cfg := &config.Config{DefaultProvider: "aws"}
 	kv := &KeyValue{
 		PrivateKey:        []byte("test"),
 		PublicKey:         []byte("test"),
 		RequirePassphrase: false,
 	}
-	err := Store("aws", "some/path", kv)
+	err := Store(cfg, "some/path", kv)
 	if err == nil {
 		t.Error("expected error for unsupported provider, got nil")
 	}
 }
 
 func TestProviderConstants(t *testing.T) {
-	if ProviderVault != "vault" {
-		t.Errorf("ProviderVault = %s, want 'vault'", ProviderVault)
+	if config.ProviderVault != "vault" {
+		t.Errorf("ProviderVault = %s, want 'vault'", config.ProviderVault)
 	}
 }
