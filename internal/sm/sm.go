@@ -1,11 +1,9 @@
 package sm
 
-import "fmt"
+import (
+	"fmt"
 
-// Provider constants
-const (
-	ProviderVault = "vault"
-	// ProviderAWS = "aws" // Future implementation
+	"github.com/codeignus/sm-ssh-add/internal/config"
 )
 
 // KeyValue represents secret key-value data.
@@ -17,10 +15,11 @@ type KeyValue struct {
 }
 
 // Get retrieves key-value data from a provider at the given path
-func Get(provider, path string) (*KeyValue, error) {
+func Get(cfg *config.Config, path string) (*KeyValue, error) {
+	provider := cfg.DefaultProvider
 	switch provider {
-	case ProviderVault:
-		client, err := NewVaultClient()
+	case config.ProviderVault:
+		client, err := NewVaultClient(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -31,10 +30,11 @@ func Get(provider, path string) (*KeyValue, error) {
 }
 
 // Store stores key-value data to a provider at the given path
-func Store(provider, path string, kv *KeyValue) error {
+func Store(cfg *config.Config, path string, kv *KeyValue) error {
+	provider := cfg.DefaultProvider
 	switch provider {
-	case ProviderVault:
-		client, err := NewVaultClient()
+	case config.ProviderVault:
+		client, err := NewVaultClient(cfg)
 		if err != nil {
 			return err
 		}

@@ -64,7 +64,7 @@ func Generate(cfg *config.Config, args []string) error {
 		Comment:           comment,
 	}
 
-	err = sm.Store(cfg.DefaultProvider, path, kv)
+	err = sm.Store(cfg, path, kv)
 	if err != nil {
 		return fmt.Errorf("failed to store key in vault: %w", err)
 	}

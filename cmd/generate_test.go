@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/codeignus/sm-ssh-add/internal/config"
-	"github.com/codeignus/sm-ssh-add/internal/sm"
 )
 
 // TestGenerateNoArguments tests error when no arguments provided
 func TestGenerateNoArguments(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 	}
 
 	err := Generate(cfg, []string{})
@@ -23,7 +22,7 @@ func TestGenerateNoArguments(t *testing.T) {
 // TestGenerateWithOnlyFlag tests error when only --require-passphrase flag provided
 func TestGenerateWithOnlyFlag(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 	}
 
 	err := Generate(cfg, []string{"--require-passphrase"})
@@ -36,7 +35,7 @@ func TestGenerateWithOnlyFlag(t *testing.T) {
 // TestGenerateWithPathOnly tests minimal valid invocation
 func TestGenerateWithPathOnly(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 	}
 
 	err := Generate(cfg, []string{"secret/ssh/test"})
@@ -50,7 +49,7 @@ func TestGenerateWithPathOnly(t *testing.T) {
 // TestGenerateWithPathAndComment tests with path and comment
 func TestGenerateWithPathAndComment(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 	}
 
 	err := Generate(cfg, []string{"secret/ssh/test", "user@example.com"})
@@ -64,7 +63,7 @@ func TestGenerateWithPathAndComment(t *testing.T) {
 // TestGenerateWithFlagPathAndComment tests with all arguments
 func TestGenerateWithFlagPathAndComment(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 	}
 
 	// Can't easily test passphrase prompt in unit tests
@@ -79,7 +78,7 @@ func TestGenerateWithFlagPathAndComment(t *testing.T) {
 // TestGenerateTooManyArguments tests error with too many arguments
 func TestGenerateTooManyArguments(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 	}
 
 	err := Generate(cfg, []string{"secret/ssh/test", "user@example.com", "extra", "args"})
@@ -93,7 +92,7 @@ func TestGenerateTooManyArguments(t *testing.T) {
 // Current implementation may accept unknown flags as path
 func TestGenerateArgumentOrdering(t *testing.T) {
 	cfg := &config.Config{
-		DefaultProvider: sm.ProviderVault,
+		DefaultProvider: config.ProviderVault,
 	}
 
 	tests := []struct {

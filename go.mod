@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	github.com/hashicorp/vault/api v1.22.0
+	github.com/hashicorp/vault/api/auth/approle v0.11.0
 	golang.org/x/crypto v0.40.0
 )
 

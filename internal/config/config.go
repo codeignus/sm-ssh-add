@@ -5,18 +5,28 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-
-	"github.com/codeignus/sm-ssh-add/internal/sm"
 )
 
 // ConfigFileName is the name of the config file
 const ConfigFileName = "sm-ssh-add.json"
 
+// Provider constants
+const (
+	ProviderVault = "vault"
+	// ProviderAWS = "aws" // Future implementation
+)
+
 // Config holds the application configuration. It reads from ~/.config/sm-ssh-add.json
 // and contains the default provider and secret manager paths to load keys from.
 type Config struct {
-	DefaultProvider string   `json:"default_provider"`
-	VaultPaths      []string `json:"vault_paths,omitempty"`
+	DefaultProvider    string   `json:"default_provider"`
+	VaultPaths         []string `json:"vault_paths,omitempty"`
+	VaultApproleRoleID string   `json:"vault_approle_role_id,omitempty"` // If set, use Vault Approle auth instead of token
+}
+
+// GetVaultApproleRoleID returns the configured Vault Approle Role ID.
+func (c *Config) GetVaultApproleRoleID() string {
+	return c.VaultApproleRoleID
 }
 
 // Read reads and parses the config file from ~/.config/sm-ssh-add.json
@@ -49,7 +59,7 @@ func Read() (*Config, error) {
 	}
 
 	switch cfg.DefaultProvider {
-	case sm.ProviderVault:
+	case ProviderVault:
 		// Valid provider
 	default:
 		return nil, ErrInvalidProvider

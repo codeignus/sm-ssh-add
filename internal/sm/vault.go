@@ -1,36 +1,94 @@
 package sm
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/vault/api/auth/approle"
+
 	vaultapi "github.com/hashicorp/vault/api"
 )
+
+// VaultApproleConfig is the interface for Vault Approle authentication configuration.
+// Using an interface avoids circular imports with the config package.
+type VaultApproleConfig interface {
+	GetVaultApproleRoleID() string
+}
 
 // VaultClient implements SecretManager interface for HashiCorp Vault KV v2
 type VaultClient struct {
 	client *vaultapi.Client
 }
 
-// NewVaultClient creates a new Vault client using environment variables.
-// Reads BAO_ADDR/BAO_TOKEN first, falls back to VAULT_ADDR/VAULT_TOKEN for compatibility.
-func NewVaultClient() (*VaultClient, error) {
-	// Check environment variables (OpenBao first, then Vault for compatibility)
+// getVaultAddress returns the Vault/OpenBao address from environment variables.
+func getVaultAddress() string {
 	addr := os.Getenv("BAO_ADDR")
 	if addr == "" {
 		addr = os.Getenv("VAULT_ADDR")
 	}
+	return addr
+}
 
+// getVaultToken returns the Vault/OpenBao token from environment variables.
+func getVaultToken() string {
 	token := os.Getenv("BAO_TOKEN")
 	if token == "" {
 		token = os.Getenv("VAULT_TOKEN")
 	}
+	return token
+}
 
+// promptForSecretID prompts the user to enter their AppRole Secret ID.
+func promptForSecretID() (string, error) {
+	fmt.Fprintln(os.Stderr, "Generate a single-use Secret ID using command similar to below:")
+	fmt.Fprintln(os.Stderr, "vault write -f auth/approle/role/sm-ssh-add/secret-id")
+	fmt.Fprint(os.Stderr, "Enter Vault/OpenBao AppRole Secret ID: ")
+
+	var secretID string
+	_, err := fmt.Scanln(&secretID)
+	if err != nil {
+		return "", wrapError(err, "failed to read secret ID")
+	}
+	if secretID == "" {
+		return "", fmt.Errorf("secret ID cannot be empty")
+	}
+	return secretID, nil
+}
+
+// appRoleLogin performs AppRole authentication and sets the token on the client.
+func appRoleLogin(client *vaultapi.Client, roleID string) error {
+	secretID := os.Getenv("VAULT_APPROLE_SECRET_ID")
+	if secretID == "" {
+		var err error
+		secretID, err = promptForSecretID()
+		if err != nil {
+			return err
+		}
+	}
+
+	appRoleAuth, err := approle.NewAppRoleAuth(
+		roleID,
+		&approle.SecretID{FromString: secretID},
+	)
+	if err != nil {
+		return wrapError(err, "failed to initialize AppRole auth")
+	}
+
+	_, err = client.Auth().Login(context.Background(), appRoleAuth)
+	if err != nil {
+		return wrapError(err, "failed to login with AppRole")
+	}
+
+	return nil
+}
+
+// NewVaultClient creates a new Vault client using environment variables.
+// If cfg is provided and contains VaultApproleRoleID, performs Approle login instead of using token.
+func NewVaultClient(cfg VaultApproleConfig) (*VaultClient, error) {
+	addr := getVaultAddress()
 	if addr == "" {
 		return nil, fmt.Errorf("vault address required: set BAO_ADDR or VAULT_ADDR")
-	}
-	if token == "" {
-		return nil, fmt.Errorf("vault token required: set BAO_TOKEN or VAULT_TOKEN")
 	}
 
 	config := vaultapi.DefaultConfig()
@@ -42,17 +100,32 @@ func NewVaultClient() (*VaultClient, error) {
 		return nil, wrapError(err, "failed to create vault client")
 	}
 
-	client.SetToken(token)
+	// Check if config has VaultApproleRoleID field set
+	var roleID string
+	if cfg != nil {
+		roleID = cfg.GetVaultApproleRoleID()
+	}
 
-	// Verify connection by making a simple request
+	// Authenticate: AppRole if configured, otherwise token
+	if roleID != "" {
+		if err := appRoleLogin(client, roleID); err != nil {
+			return nil, err
+		}
+	} else {
+		token := getVaultToken()
+		if token == "" {
+			return nil, fmt.Errorf("vault token required: set BAO_TOKEN or VAULT_TOKEN")
+		}
+		client.SetToken(token)
+	}
+
+	// Verify connection
 	_, err = client.Auth().Token().LookupSelf()
 	if err != nil {
 		return nil, wrapError(err, ErrVaultConnection.Error())
 	}
 
-	return &VaultClient{
-		client: client,
-	}, nil
+	return &VaultClient{client: client}, nil
 }
 
 // GetKV retrieves key-value data from Vault KV v2 at the given path
