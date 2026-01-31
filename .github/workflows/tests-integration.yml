@@ -62,18 +62,32 @@ jobs:
           VAULT_ADDR: http://localhost:8200
           VAULT_TOKEN: test-token
         run: |
-          vault auth enable approle
-          vault write auth/approle/role/sm-ssh-add token_policies="sm-ssh-add-policy" token_ttl=1h
-          vault policy write sm-ssh-add-policy - <<'EOF'
-          path "secret/data/ssh/*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
-          path "secret/metadata/ssh/*" {
-            capabilities = ["list"]
-          }
-          EOF
-          echo "VAULT_APPROLE_ROLE_ID=$(vault read -field=role_id auth/approle/role/sm-ssh-add/role-id)" >> $GITHUB_ENV
-          echo "VAULT_APPROLE_SECRET_ID=$(vault write -f -field=secret_id auth/approle/role/sm-ssh-add/secret-id)" >> $GITHUB_ENV
+          # Install jq for JSON parsing
+          sudo apt-get update && sudo apt-get install -y curl jq
+
+          # Enable AppRole auth method via Vault API (idempotent - safe if already enabled)
+          curl -s -X POST $VAULT_ADDR/v1/sys/auth/approle -H "X-Vault-Token: $VAULT_TOKEN" -d '{"type": "approle"}' || true
+
+          # Create policy via Vault API (idempotent - will overwrite if exists)
+          curl -s -X POST $VAULT_ADDR/v1/sys/policies/acl/sm-ssh-add-policy \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "policy": "path \"secret/data/ssh/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"secret/metadata/ssh/*\" {\n  capabilities = [\"list\"]\n}"
+            }'
+
+          # Create AppRole with policy via Vault API (idempotent - will overwrite if exists)
+          curl -s -X POST $VAULT_ADDR/v1/auth/approle/role/sm-ssh-add \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"token_policies": "sm-ssh-add-policy", "token_ttl": "1h"}'
+
+          # Get role_id and secret_id via Vault API
+          ROLE_ID=$(curl -s -X GET $VAULT_ADDR/v1/auth/approle/role/sm-ssh-add/role-id -H "X-Vault-Token: $VAULT_TOKEN" | jq -r '.data.role_id')
+          SECRET_ID=$(curl -s -X POST $VAULT_ADDR/v1/auth/approle/role/sm-ssh-add/secret-id -H "X-Vault-Token: $VAULT_TOKEN" | jq -r '.data.secret_id')
+
+          echo "VAULT_APPROLE_ROLE_ID=$ROLE_ID" >> $GITHUB_ENV
+          echo "VAULT_APPROLE_SECRET_ID=$SECRET_ID" >> $GITHUB_ENV
 
       - name: Run integration tests
         env:
