@@ -20,14 +20,16 @@ Download the latest release from the [releases page](https://github.com/codeignu
 
 ```bash
 # Linux (x86_64)
-curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_0.1.0_Linux_x86_64.tar.gz
-tar -xzf sm-ssh-add_0.1.0_Linux_x86_64.tar.gz
-sudo mv sm-ssh-add /usr/local/bin/
+curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_0.2.0_Linux_x86_64.tar.gz
+mkdir -p /tmp/sm-ssh-add && tar -xzf sm-ssh-add_0.2.0_Linux_x86_64.tar.gz -C /tmp/sm-ssh-add
+sudo mv /tmp/sm-ssh-add/sm-ssh-add /usr/local/bin/
+rm -rf /tmp/sm-ssh-add sm-ssh-add_0.2.0_Linux_x86_64.tar.gz
 
 # macOS (Apple Silicon)
-curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_0.1.0_Darwin_arm64.tar.gz
-tar -xzf sm-ssh-add_0.1.0_Darwin_arm64.tar.gz
-sudo mv sm-ssh-add /usr/local/bin/
+curl -LO https://github.com/codeignus/sm-ssh-add/releases/latest/download/sm-ssh-add_0.2.0_Darwin_arm64.tar.gz
+mkdir -p /tmp/sm-ssh-add && tar -xzf sm-ssh-add_0.2.0_Darwin_arm64.tar.gz -C /tmp/sm-ssh-add
+sudo mv /tmp/sm-ssh-add/sm-ssh-add /usr/local/bin/
+rm -rf /tmp/sm-ssh-add sm-ssh-add_0.2.0_Darwin_arm64.tar.gz
 ```
 
 ### Build from Source
