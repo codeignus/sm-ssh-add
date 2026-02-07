@@ -12,23 +12,33 @@ import (
 // Generate creates a new SSH key pair and displays the public key
 func Generate(cfg *config.Config, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: sm-ssh-add generate [--require-passphrase] <path> [comment]")
+		return fmt.Errorf("usage: sm-ssh-add generate [--require-passphrase] [--save-path] <path> [comment]")
 	}
 
-	if len(args) > 3 {
-		return fmt.Errorf("too many arguments\nusage: sm-ssh-add generate [--require-passphrase] <path> [comment]")
+	if len(args) > 5 {
+		return fmt.Errorf("too many arguments\nusage: sm-ssh-add generate [--require-passphrase] [--save-path] [--regenerate] <path> [comment]")
 	}
 
 	// Parse arguments
 	path := ""
 	comment := ""
 	requirePassphrase := false
+	savePath := false
+	regenerateKeypair := false
 
 	for _, arg := range args {
-		switch arg {
-		case "--require-passphrase":
-			requirePassphrase = true
-		default:
+		if len(arg) > 0 && arg[0] == '-' {
+			switch arg {
+			case "--require-passphrase":
+				requirePassphrase = true
+			case "--save-path":
+				savePath = true
+			case "--regenerate":
+				regenerateKeypair = true
+			default:
+				return fmt.Errorf("unknown flag: %s", arg)
+			}
+		} else {
 			if path == "" {
 				path = arg
 			} else if comment == "" {
@@ -43,6 +53,18 @@ func Generate(cfg *config.Config, args []string) error {
 
 	var passphrase []byte
 	var err error
+
+	// If not regenerating, check if key already exists
+	if !regenerateKeypair {
+		exists, err := sm.CheckExists(cfg, path)
+		if err != nil {
+			return fmt.Errorf("failed to check existing key: %w", err)
+		}
+		if exists {
+			return fmt.Errorf("key already exists at %s (use --regenerate to overwrite)", path)
+		}
+	}
+
 	if requirePassphrase {
 		passphrase, err = readPassphrase()
 		if err != nil {
@@ -67,6 +89,15 @@ func Generate(cfg *config.Config, args []string) error {
 	err = sm.Store(cfg, path, kv)
 	if err != nil {
 		return fmt.Errorf("failed to store key in vault: %w", err)
+	}
+
+	// Save path to config if requested
+	if savePath {
+		if err := cfg.AddPath(path); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "Path %q saved to config\n", path)
+		}
 	}
 
 	// Display the public key

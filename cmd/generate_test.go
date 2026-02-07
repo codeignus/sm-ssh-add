@@ -19,6 +19,47 @@ func TestGenerateNoArguments(t *testing.T) {
 	}
 }
 
+// TestGenerateWithRegenerateFlag tests --regenerate flag
+func TestGenerateWithRegenerateFlag(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	err := Generate(cfg, []string{"--regenerate", "secret/ssh/test"})
+
+	// Will fail without real Vault, but tests argument parsing
+	if err != nil {
+		t.Logf("Expected (no Vault): %v", err)
+	}
+}
+
+// TestGenerateWithRegenerateAndComment tests --regenerate with path and comment
+func TestGenerateWithRegenerateAndComment(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	err := Generate(cfg, []string{"--regenerate", "secret/ssh/test", "user@example.com"})
+
+	// Will fail without real Vault, but tests argument parsing
+	if err != nil {
+		t.Logf("Expected (no Vault): %v", err)
+	}
+}
+
+// TestGenerateWithOnlyRegenerateFlag tests error when only --regenerate flag provided
+func TestGenerateWithOnlyRegenerateFlag(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	err := Generate(cfg, []string{"--regenerate"})
+
+	if err == nil {
+		t.Error("expected error when only flag provided, got nil")
+	}
+}
+
 // TestGenerateWithOnlyFlag tests error when only --require-passphrase flag provided
 func TestGenerateWithOnlyFlag(t *testing.T) {
 	cfg := &config.Config{
@@ -81,16 +122,85 @@ func TestGenerateTooManyArguments(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"secret/ssh/test", "user@example.com", "extra", "args"})
+	// With 6 args it should fail (max is 5: 3 flags + path + comment)
+	err := Generate(cfg, []string{"secret/ssh/test", "user@example.com", "extra", "args", "another", "onemore"})
 
 	if err == nil {
 		t.Error("expected error for too many arguments, got nil")
 	}
 }
 
-// TestGenerateUnknownFlag tests behavior with unknown flag
-// Current implementation may accept unknown flags as path
-func TestGenerateArgumentOrdering(t *testing.T) {
+// TestGenerateWithSavePathFlag tests --save-path flag
+func TestGenerateWithSavePathFlag(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	err := Generate(cfg, []string{"--save-path", "secret/ssh/test"})
+
+	// Will fail without real Vault, but tests argument parsing
+	if err != nil {
+		t.Logf("Expected (no Vault): %v", err)
+	}
+}
+
+// TestGenerateWithBothFlags tests both --require-passphrase and --save-path flags
+func TestGenerateWithBothFlags(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	// This will fail at passphrase prompt, but tests argument parsing
+	err := Generate(cfg, []string{"--require-passphrase", "--save-path", "secret/ssh/test", "user@example.com"})
+
+	if err != nil {
+		t.Logf("Expected (no Vault/passphrase): %v", err)
+	}
+}
+
+// TestGenerateWithAllFlags tests all three flags together
+func TestGenerateWithAllFlags(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	// This will fail at passphrase prompt, but tests argument parsing
+	err := Generate(cfg, []string{"--require-passphrase", "--save-path", "--regenerate", "secret/ssh/test", "user@example.com"})
+
+	if err != nil {
+		t.Logf("Expected (no Vault/passphrase): %v", err)
+	}
+}
+
+// TestGenerateWithSavePathAndComment tests --save-path with path and comment
+func TestGenerateWithSavePathAndComment(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	err := Generate(cfg, []string{"--save-path", "secret/ssh/test", "user@example.com"})
+
+	// Will fail without real Vault, but tests argument parsing
+	if err != nil {
+		t.Logf("Expected (no Vault): %v", err)
+	}
+}
+
+// TestGenerateWithOnlySavePathFlag tests error when only --save-path flag provided
+func TestGenerateWithOnlySavePathFlag(t *testing.T) {
+	cfg := &config.Config{
+		DefaultProvider: config.ProviderVault,
+	}
+
+	err := Generate(cfg, []string{"--save-path"})
+
+	if err == nil {
+		t.Error("expected error when only flag provided, got nil")
+	}
+}
+
+// TestGenerateWithUnknownFlag tests error when unknown flag is provided
+func TestGenerateWithUnknownFlag(t *testing.T) {
 	cfg := &config.Config{
 		DefaultProvider: config.ProviderVault,
 	}
@@ -101,23 +211,29 @@ func TestGenerateArgumentOrdering(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:        "flag after path",
-			args:        []string{"secret/ssh/test", "--require-passphrase"},
-			expectError: false, // Current implementation treats flag as comment
+			name:        "unknown single dash flag",
+			args:        []string{"-unknown", "secret/ssh/test"},
+			expectError: true,
 		},
 		{
-			name:        "path flag comment",
-			args:        []string{"secret/ssh/test", "--require-passphrase", "user@example.com"},
-			expectError: false,
+			name:        "unknown double dash flag",
+			args:        []string{"--unknown", "secret/ssh/test"},
+			expectError: true,
+		},
+		{
+			name:        "unknown flag after path",
+			args:        []string{"secret/ssh/test", "--unknown"},
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := Generate(cfg, tt.args)
-			// Will fail on Vault, but we're testing argument parsing
-			if err != nil {
-				t.Logf("Expected (no Vault): %v", err)
+			if tt.expectError && err == nil {
+				t.Error("expected error for unknown flag, got nil")
+			} else if !tt.expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
 			}
 		})
 	}

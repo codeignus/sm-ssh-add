@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/hashicorp/vault/api/auth/approle"
 
@@ -156,8 +157,13 @@ func (v *VaultClient) GetKV(path string) (*KeyValue, error) {
 	}
 
 	requirePassphrase := false
-	if rp, ok := data["require_passphrase"].(bool); ok {
-		requirePassphrase = rp
+	requirePassphraseStr, ok := data["require_passphrase"].(string)
+	if ok {
+		var err error
+		requirePassphrase, err = strconv.ParseBool(requirePassphraseStr)
+		if err != nil {
+			return nil, wrapError(err, "failed to parse require_passphrase")
+		}
 	}
 
 	comment := ""
@@ -178,7 +184,7 @@ func (v *VaultClient) StoreKV(path string, kv *KeyValue) error {
 	secretData := map[string]interface{}{
 		"private_key":        string(kv.PrivateKey),
 		"public_key":         string(kv.PublicKey),
-		"require_passphrase": kv.RequirePassphrase,
+		"require_passphrase": fmt.Sprintf("%v", kv.RequirePassphrase),
 		"comment":            kv.Comment,
 	}
 
@@ -192,4 +198,29 @@ func (v *VaultClient) StoreKV(path string, kv *KeyValue) error {
 	}
 
 	return nil
+}
+
+// CheckExists checks if a key already exists at the given path
+func (v *VaultClient) CheckExists(path string) (bool, error) {
+	secret, err := v.client.Logical().Read(path)
+	if err != nil {
+		return false, wrapError(err, "failed to check path existence")
+	}
+
+	// KV v2: If secret.Data is nil or empty, path doesn't exist
+	if secret == nil || secret.Data == nil {
+		return false, nil
+	}
+
+	data, ok := secret.Data["data"]
+	if !ok || data == nil {
+		return false, nil
+	}
+
+	// If data map exists and is not empty, path exists
+	if dataMap, ok := data.(map[string]interface{}); ok {
+		return len(dataMap) > 0, nil
+	}
+
+	return false, nil
 }

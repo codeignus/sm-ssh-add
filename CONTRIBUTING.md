@@ -54,7 +54,7 @@ type AWSClient struct {
     // your fields
 }
 
-func NewAWSClient() (*AWSClient, error) {
+func NewAWSClient(cfg *config.Config) (*AWSClient, error) {
     // initialization
 }
 
@@ -65,28 +65,25 @@ func (a *AWSClient) GetKV(path string) (*KeyValue, error) {
 func (a *AWSClient) StoreKV(path string, kv *KeyValue) error {
     // implementation
 }
+
+func (a *AWSClient) CheckExists(path string) (bool, error) {
+    // implementation
+}
 ```
 
 Reference: `internal/sm/vault.go` for complete example.
 
-### 3. Update Get/Store Functions
+### 3. Update sm.go Functions
 
-In `internal/sm/sm.go`, add cases for your provider in `Get()` and `Store()`:
+In `internal/sm/sm.go`, add cases for your provider in `Get()`, `Store()`, and `CheckExists()`:
+
 ```go
-func Get(provider, path string) (*KeyValue, error) {
-    switch provider {
-    case ProviderVault:
-        // existing
-    case ProviderAWS:  // Add this
-        client, err := NewAWSClient()
-        if err != nil {
-            return nil, err
-        }
-        return client.GetKV(path)
-    default:
-        return nil, fmt.Errorf("unsupported provider: %s", provider)
+case ProviderAWS:
+    client, err := NewAWSClient(cfg)
+    if err != nil {
+        return false, err  // or return nil, err for Get()
     }
-}
+    return client.CheckExists(path)  // or GetKV(path) or StoreKV(path, kv)
 ```
 
 ### 4. Update Config

@@ -43,3 +43,18 @@ func Store(cfg *config.Config, path string, kv *KeyValue) error {
 		return fmt.Errorf("unsupported provider: %s", provider)
 	}
 }
+
+// CheckExists checks if a key already exists at the given path in the configured provider
+func CheckExists(cfg *config.Config, path string) (bool, error) {
+	provider := cfg.DefaultProvider
+	switch provider {
+	case config.ProviderVault:
+		client, err := NewVaultClient(cfg)
+		if err != nil {
+			return false, err
+		}
+		return client.CheckExists(path)
+	default:
+		return false, fmt.Errorf("unsupported provider: %s", provider)
+	}
+}
