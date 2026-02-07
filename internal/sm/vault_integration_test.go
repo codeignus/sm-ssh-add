@@ -363,3 +363,91 @@ func TestGetKV_rejects_malformed_vault_data_missing_public_key(t *testing.T) {
 	// Cleanup
 	client.client.Logical().Delete(testPath)
 }
+
+func TestCheckExists_returns_true_when_key_exists(t *testing.T) {
+	cfg := &config.Config{DefaultProvider: config.ProviderVault}
+	client, err := NewVaultClient(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create Vault client: %v", err)
+	}
+
+	// Setup: Store a key
+	kv := &KeyValue{
+		PrivateKey:        []byte("test-private-exists"),
+		PublicKey:         []byte("test-public-exists"),
+		RequirePassphrase: false,
+	}
+	testPath := "secret/data/ssh/test-check-exists"
+	err = client.StoreKV(testPath, kv)
+	if err != nil {
+		t.Fatalf("Setup failed: StoreKV error: %v", err)
+	}
+
+	// Test: Check if key exists
+	exists, err := client.CheckExists(testPath)
+
+	// Verify: Should return true with no error
+	if err != nil {
+		t.Errorf("CheckExists failed: %v", err)
+	}
+	if !exists {
+		t.Error("Expected CheckExists to return true for existing key")
+	}
+
+	// Cleanup
+	client.client.Logical().Delete(testPath)
+}
+
+func TestCheckExists_returns_false_when_key_does_not_exist(t *testing.T) {
+	cfg := &config.Config{DefaultProvider: config.ProviderVault}
+	client, err := NewVaultClient(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create Vault client: %v", err)
+	}
+
+	// Test: Check a path that doesn't exist
+	testPath := "secret/data/ssh/test-check-not-exist-12345"
+	exists, err := client.CheckExists(testPath)
+
+	// Verify: Should return false with no error
+	if err != nil {
+		t.Errorf("CheckExists failed: %v", err)
+	}
+	if exists {
+		t.Error("Expected CheckExists to return false for non-existent key")
+	}
+}
+
+func TestCheckExists_handles_deleted_path(t *testing.T) {
+	cfg := &config.Config{DefaultProvider: config.ProviderVault}
+	client, err := NewVaultClient(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create Vault client: %v", err)
+	}
+
+	// Setup: Store and then delete a key
+	kv := &KeyValue{
+		PrivateKey:        []byte("test-private-deleted"),
+		PublicKey:         []byte("test-public-deleted"),
+		RequirePassphrase: false,
+	}
+	testPath := "secret/data/ssh/test-check-deleted"
+	err = client.StoreKV(testPath, kv)
+	if err != nil {
+		t.Fatalf("Setup failed: StoreKV error: %v", err)
+	}
+
+	// Delete the key
+	client.client.Logical().Delete(testPath)
+
+	// Test: Check if deleted key exists
+	exists, err := client.CheckExists(testPath)
+
+	// Verify: Should return false with no error
+	if err != nil {
+		t.Errorf("CheckExists failed: %v", err)
+	}
+	if exists {
+		t.Error("Expected CheckExists to return false for deleted key")
+	}
+}
