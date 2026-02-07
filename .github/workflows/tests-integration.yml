@@ -94,7 +94,7 @@ jobs:
           ${{ matrix.addr_env }}: http://localhost:8200
           ${{ matrix.token_env }}: test-token
         run: |
-          go test -v -tags=integration ./internal/sm/
+          go test -v -tags=integration ./internal/sm/ ./cmd/
 
   integration-ssh-agent:
     name: Integration Tests (ssh-agent)
