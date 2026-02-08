@@ -30,9 +30,9 @@ func TestRead(t *testing.T) {
 			t.Errorf("DefaultProvider = %q, want vault", cfg.DefaultProvider)
 		}
 
-		paths := cfg.GetVaultPaths()
+		paths := cfg.GetPaths()
 		if len(paths) != 1 || paths[0] != "secret/ssh/github" {
-			t.Errorf("GetVaultPaths() = %v, want [secret/ssh/github]", paths)
+			t.Errorf("GetPaths() = %v, want [secret/ssh/github]", paths)
 		}
 	})
 
@@ -64,21 +64,21 @@ func TestRead(t *testing.T) {
 	})
 }
 
-func TestGetVaultPaths(t *testing.T) {
+func TestGetPaths(t *testing.T) {
 	cfg := &Config{
 		DefaultProvider: "vault",
 		VaultPaths:      []string{"path1", "path2"},
 	}
 
-	paths := cfg.GetVaultPaths()
+	paths := cfg.GetPaths()
 	if len(paths) != 2 {
-		t.Errorf("GetVaultPaths() returned %d paths, want 2", len(paths))
+		t.Errorf("GetPaths() returned %d paths, want 2", len(paths))
 	}
 
 	cfg2 := &Config{VaultPaths: nil}
-	paths2 := cfg2.GetVaultPaths()
+	paths2 := cfg2.GetPaths()
 	if len(paths2) != 0 {
-		t.Errorf("GetVaultPaths() with nil returned %d paths, want 0", len(paths2))
+		t.Errorf("GetPaths() with nil returned %d paths, want 0", len(paths2))
 	}
 }
 

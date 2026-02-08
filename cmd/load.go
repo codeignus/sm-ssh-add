@@ -20,9 +20,9 @@ func parseLoadArgs(args []string, cfg *config.Config) ([]string, error) {
 		if len(args) > 1 {
 			return nil, fmt.Errorf("cannot use both --from-config and direct path")
 		}
-		paths := cfg.GetVaultPaths()
+		paths := cfg.GetPaths()
 		if len(paths) == 0 {
-			return nil, fmt.Errorf("no vault paths configured")
+			return nil, fmt.Errorf("no paths configured")
 		}
 		return paths, nil
 	}
@@ -37,8 +37,8 @@ func parseLoadArgs(args []string, cfg *config.Config) ([]string, error) {
 }
 
 // loadAndAddKey loads a key from the given path and adds it to the agent
-func loadAndAddKey(path string, cfg *config.Config, agent *ssh.Agent) error {
-	keyValue, err := sm.Get(cfg, path)
+func loadAndAddKey(path string, provider sm.Provider, agent *ssh.Agent) error {
+	keyValue, err := provider.Get(path)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load key from %s: %v\n", path, err)
 		return err
@@ -77,7 +77,7 @@ func loadAndAddKey(path string, cfg *config.Config, agent *ssh.Agent) error {
 }
 
 // Load retrieves SSH keys from the secret manager and adds them to ssh-agent
-func Load(cfg *config.Config, args []string) error {
+func Load(provider sm.Provider, cfg *config.Config, args []string) error {
 	paths, err := parseLoadArgs(args, cfg)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func Load(cfg *config.Config, args []string) error {
 	}()
 
 	for _, path := range paths {
-		if err := loadAndAddKey(path, cfg, agent); err != nil {
+		if err := loadAndAddKey(path, provider, agent); err != nil {
 			return err
 		}
 	}

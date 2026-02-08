@@ -4,15 +4,32 @@ import (
 	"testing"
 
 	"github.com/codeignus/sm-ssh-add/internal/config"
+	"github.com/codeignus/sm-ssh-add/internal/sm"
 )
+
+// mockProvider is a mock implementation of sm.Provider for testing
+type mockProvider struct{}
+
+func (m *mockProvider) Get(path string) (*sm.KeyValue, error) {
+	return nil, nil
+}
+
+func (m *mockProvider) Store(path string, kv *sm.KeyValue) error {
+	return nil
+}
+
+func (m *mockProvider) CheckExists(path string) (bool, error) {
+	return false, nil
+}
 
 // TestGenerateNoArguments tests error when no arguments provided
 func TestGenerateNoArguments(t *testing.T) {
 	cfg := &config.Config{
 		DefaultProvider: config.ProviderVault,
 	}
+	provider := &mockProvider{}
 
-	err := Generate(cfg, []string{})
+	err := Generate(provider, cfg, []string{})
 
 	if err == nil {
 		t.Error("expected error for no arguments, got nil")
@@ -25,7 +42,8 @@ func TestGenerateWithRegenerateFlag(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"--regenerate", "secret/ssh/test"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--regenerate", "secret/ssh/test"})
 
 	// Will fail without real Vault, but tests argument parsing
 	if err != nil {
@@ -39,7 +57,8 @@ func TestGenerateWithRegenerateAndComment(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"--regenerate", "secret/ssh/test", "user@example.com"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--regenerate", "secret/ssh/test", "user@example.com"})
 
 	// Will fail without real Vault, but tests argument parsing
 	if err != nil {
@@ -53,7 +72,8 @@ func TestGenerateWithOnlyRegenerateFlag(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"--regenerate"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--regenerate"})
 
 	if err == nil {
 		t.Error("expected error when only flag provided, got nil")
@@ -66,7 +86,8 @@ func TestGenerateWithOnlyFlag(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"--require-passphrase"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--require-passphrase"})
 
 	if err == nil {
 		t.Error("expected error when only flag provided, got nil")
@@ -79,7 +100,8 @@ func TestGenerateWithPathOnly(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"secret/ssh/test"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"secret/ssh/test"})
 
 	// Will fail without real Vault, but tests argument parsing
 	if err != nil {
@@ -93,7 +115,8 @@ func TestGenerateWithPathAndComment(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"secret/ssh/test", "user@example.com"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"secret/ssh/test", "user@example.com"})
 
 	// Will fail without real Vault, but tests argument parsing
 	if err != nil {
@@ -109,7 +132,8 @@ func TestGenerateWithFlagPathAndComment(t *testing.T) {
 
 	// Can't easily test passphrase prompt in unit tests
 	// This will fail at passphrase prompt, but tests argument parsing
-	err := Generate(cfg, []string{"--require-passphrase", "secret/ssh/test", "user@example.com"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--require-passphrase", "secret/ssh/test", "user@example.com"})
 
 	if err != nil {
 		t.Logf("Expected (no Vault/passphrase): %v", err)
@@ -123,7 +147,8 @@ func TestGenerateTooManyArguments(t *testing.T) {
 	}
 
 	// With 6 args it should fail (max is 5: 3 flags + path + comment)
-	err := Generate(cfg, []string{"secret/ssh/test", "user@example.com", "extra", "args", "another", "onemore"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"secret/ssh/test", "user@example.com", "extra", "args", "another", "onemore"})
 
 	if err == nil {
 		t.Error("expected error for too many arguments, got nil")
@@ -136,7 +161,8 @@ func TestGenerateWithSavePathFlag(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"--save-path", "secret/ssh/test"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--save-path", "secret/ssh/test"})
 
 	// Will fail without real Vault, but tests argument parsing
 	if err != nil {
@@ -151,7 +177,8 @@ func TestGenerateWithBothFlags(t *testing.T) {
 	}
 
 	// This will fail at passphrase prompt, but tests argument parsing
-	err := Generate(cfg, []string{"--require-passphrase", "--save-path", "secret/ssh/test", "user@example.com"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--require-passphrase", "--save-path", "secret/ssh/test", "user@example.com"})
 
 	if err != nil {
 		t.Logf("Expected (no Vault/passphrase): %v", err)
@@ -165,7 +192,8 @@ func TestGenerateWithAllFlags(t *testing.T) {
 	}
 
 	// This will fail at passphrase prompt, but tests argument parsing
-	err := Generate(cfg, []string{"--require-passphrase", "--save-path", "--regenerate", "secret/ssh/test", "user@example.com"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--require-passphrase", "--save-path", "--regenerate", "secret/ssh/test", "user@example.com"})
 
 	if err != nil {
 		t.Logf("Expected (no Vault/passphrase): %v", err)
@@ -178,7 +206,8 @@ func TestGenerateWithSavePathAndComment(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"--save-path", "secret/ssh/test", "user@example.com"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--save-path", "secret/ssh/test", "user@example.com"})
 
 	// Will fail without real Vault, but tests argument parsing
 	if err != nil {
@@ -192,7 +221,8 @@ func TestGenerateWithOnlySavePathFlag(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 	}
 
-	err := Generate(cfg, []string{"--save-path"})
+	provider := &mockProvider{}
+	err := Generate(provider, cfg, []string{"--save-path"})
 
 	if err == nil {
 		t.Error("expected error when only flag provided, got nil")
@@ -229,7 +259,8 @@ func TestGenerateWithUnknownFlag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Generate(cfg, tt.args)
+			provider := &mockProvider{}
+			err := Generate(provider, cfg, tt.args)
 			if tt.expectError && err == nil {
 				t.Error("expected error for unknown flag, got nil")
 			} else if !tt.expectError && err != nil {

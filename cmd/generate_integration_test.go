@@ -14,6 +14,12 @@ import (
 func TestGenerateCommand_RegenerateFlag_OverwritesExistingKey(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 
+	// Initialize provider
+	provider, err := sm.InitProvider(cfg)
+	if err != nil {
+		t.Fatalf("Failed to initialize provider: %v", err)
+	}
+
 	// Setup: Store initial key
 	path := "secret/data/ssh/test-regenerate"
 	initialKV := &sm.KeyValue{
@@ -22,14 +28,14 @@ func TestGenerateCommand_RegenerateFlag_OverwritesExistingKey(t *testing.T) {
 		RequirePassphrase: false,
 		Comment:           "initial@test",
 	}
-	err := sm.Store(cfg, path, initialKV)
+	err = provider.Store(path, initialKV)
 	if err != nil {
-		t.Fatalf("Setup failed: StoreKV error: %v", err)
+		t.Fatalf("Setup failed: Store error: %v", err)
 	}
 
 	// Test: Generate with --regenerate
 	args := []string{"--regenerate", path, "regenerated@test"}
-	err = Generate(cfg, args)
+	err = Generate(provider, cfg, args)
 
 	// Verify: No error
 	if err != nil {
@@ -37,7 +43,7 @@ func TestGenerateCommand_RegenerateFlag_OverwritesExistingKey(t *testing.T) {
 	}
 
 	// Verify: Key was overwritten
-	retrieved, err := sm.Get(cfg, path)
+	retrieved, err := provider.Get(path)
 	if err != nil {
 		t.Fatalf("Failed to retrieve key: %v", err)
 	}
@@ -69,10 +75,16 @@ func TestGenerateCommand_SavePathFlag_AddsPathToConfig(t *testing.T) {
 		t.Fatalf("Failed to read config: %v", err)
 	}
 
+	// Initialize provider
+	provider, err := sm.InitProvider(cfg)
+	if err != nil {
+		t.Fatalf("Failed to initialize provider: %v", err)
+	}
+
 	// Test: Generate with --save-path
 	testPath := "secret/data/ssh/test-save-path"
 	args := []string{"--save-path", testPath, "savepath@test"}
-	err = Generate(cfg, args)
+	err = Generate(provider, cfg, args)
 
 	// Verify: No error
 	if err != nil {
@@ -136,6 +148,12 @@ func TestGenerateCommand_SavePathFlag_DuplicateIsNoOp(t *testing.T) {
 func TestGenerateCommand_WithoutRegenerate_RejectsDuplicatePath(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 
+	// Initialize provider
+	provider, err := sm.InitProvider(cfg)
+	if err != nil {
+		t.Fatalf("Failed to initialize provider: %v", err)
+	}
+
 	// Setup: Store a key
 	path := "secret/data/ssh/test-no-regenerate"
 	initialKV := &sm.KeyValue{
@@ -144,14 +162,14 @@ func TestGenerateCommand_WithoutRegenerate_RejectsDuplicatePath(t *testing.T) {
 		RequirePassphrase: false,
 		Comment:           "existing@test",
 	}
-	err := sm.Store(cfg, path, initialKV)
+	err = provider.Store(path, initialKV)
 	if err != nil {
-		t.Fatalf("Setup failed: StoreKV error: %v", err)
+		t.Fatalf("Setup failed: Store error: %v", err)
 	}
 
 	// Test: Generate WITHOUT --regenerate
 	args := []string{path, "should-fail@test"}
-	err = Generate(cfg, args)
+	err = Generate(provider, cfg, args)
 
 	// Verify: Error about key existing
 	if err == nil {
@@ -163,7 +181,7 @@ func TestGenerateCommand_WithoutRegenerate_RejectsDuplicatePath(t *testing.T) {
 	}
 
 	// Verify: Original key was not modified
-	retrieved, err := sm.Get(cfg, path)
+	retrieved, err := provider.Get(path)
 	if err != nil {
 		t.Fatalf("Failed to retrieve key: %v", err)
 	}
@@ -175,10 +193,16 @@ func TestGenerateCommand_WithoutRegenerate_RejectsDuplicatePath(t *testing.T) {
 func TestGenerateCommand_NewPath_Succeeds(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 
+	// Initialize provider
+	provider, err := sm.InitProvider(cfg)
+	if err != nil {
+		t.Fatalf("Failed to initialize provider: %v", err)
+	}
+
 	// Test: Generate to a new path
 	path := "secret/data/ssh/test-new-path-generate"
 	args := []string{path, "newkey@test"}
-	err := Generate(cfg, args)
+	err = Generate(provider, cfg, args)
 
 	// Verify: No error
 	if err != nil {
@@ -186,7 +210,7 @@ func TestGenerateCommand_NewPath_Succeeds(t *testing.T) {
 	}
 
 	// Verify: Key was stored
-	retrieved, err := sm.Get(cfg, path)
+	retrieved, err := provider.Get(path)
 	if err != nil {
 		t.Fatalf("Failed to retrieve key: %v", err)
 	}

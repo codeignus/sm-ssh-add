@@ -6,6 +6,7 @@ import (
 
 	"github.com/codeignus/sm-ssh-add/cmd"
 	"github.com/codeignus/sm-ssh-add/internal/config"
+	"github.com/codeignus/sm-ssh-add/internal/sm"
 )
 
 func main() {
@@ -20,17 +21,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize provider once (single authentication)
+	provider, err := sm.InitProvider(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
 	command := os.Args[1]
 	args := os.Args[2:]
 
 	switch command {
 	case "generate":
-		if err := cmd.Generate(cfg, args); err != nil {
+		if err := cmd.Generate(provider, cfg, args); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "load":
-		if err := cmd.Load(cfg, args); err != nil {
+		if err := cmd.Load(provider, cfg, args); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
