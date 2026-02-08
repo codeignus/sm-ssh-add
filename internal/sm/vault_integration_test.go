@@ -9,7 +9,7 @@ import (
 	"github.com/codeignus/sm-ssh-add/internal/config"
 )
 
-func TestStoreKV_stores_key_value_data_successfully(t *testing.T) {
+func TestStore_stores_key_value_data_successfully(t *testing.T) {
 	// Setup: Create VaultClient (will use VAULT_ADDR/VAULT_TOKEN from env)
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 	client, err := NewVaultClient(cfg)
@@ -26,18 +26,18 @@ func TestStoreKV_stores_key_value_data_successfully(t *testing.T) {
 
 	// Test: Store the data (KV v2 requires /data/ in path)
 	testPath := "secret/data/ssh/test-store-success"
-	err = client.StoreKV(testPath, kv)
+	err = client.Store(testPath, kv)
 
 	// Verify: Should not return error
 	if err != nil {
-		t.Errorf("StoreKV failed: %v", err)
+		t.Errorf("Store failed: %v", err)
 	}
 
 	// Cleanup: Remove test data
 	client.client.Logical().Delete(testPath)
 }
 
-func TestStoreKV_stores_key_without_passphrase(t *testing.T) {
+func TestStore_stores_key_without_passphrase(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 	client, err := NewVaultClient(cfg)
 	if err != nil {
@@ -51,16 +51,16 @@ func TestStoreKV_stores_key_without_passphrase(t *testing.T) {
 	}
 
 	testPath := "secret/data/ssh/test-store-no-passphrase"
-	err = client.StoreKV(testPath, kv)
+	err = client.Store(testPath, kv)
 
 	if err != nil {
-		t.Errorf("StoreKV without passphrase failed: %v", err)
+		t.Errorf("Store without passphrase failed: %v", err)
 	}
 
 	client.client.Logical().Delete(testPath)
 }
 
-func TestStoreKV_rejects_empty_path(t *testing.T) {
+func TestStore_rejects_empty_path(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 	client, err := NewVaultClient(cfg)
 	if err != nil {
@@ -73,14 +73,14 @@ func TestStoreKV_rejects_empty_path(t *testing.T) {
 		RequirePassphrase: false,
 	}
 
-	err = client.StoreKV("", kv)
+	err = client.Store("", kv)
 
 	if err == nil {
 		t.Error("Expected error when storing to empty path, got nil")
 	}
 }
 
-func TestGetKV_retrieves_stored_key_value_data(t *testing.T) {
+func TestGet_retrieves_stored_key_value_data(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 	client, err := NewVaultClient(cfg)
 	if err != nil {
@@ -94,15 +94,15 @@ func TestGetKV_retrieves_stored_key_value_data(t *testing.T) {
 		RequirePassphrase: true,
 	}
 	testPath := "secret/data/ssh/test-retrieve"
-	err = client.StoreKV(testPath, originalKV)
+	err = client.Store(testPath, originalKV)
 	if err != nil {
-		t.Fatalf("Setup failed: StoreKV error: %v", err)
+		t.Fatalf("Setup failed: Store error: %v", err)
 	}
 
 	// Test: Retrieve the data
-	retrievedKV, err := client.GetKV(testPath)
+	retrievedKV, err := client.Get(testPath)
 	if err != nil {
-		t.Errorf("GetKV failed: %v", err)
+		t.Errorf("Get failed: %v", err)
 	}
 
 	// Verify: All fields match
@@ -168,14 +168,14 @@ func TestAppRoleLogin_authenticates_successfully(t *testing.T) {
 	}
 	testPath := "secret/data/ssh/appprole-test"
 
-	err = client.StoreKV(testPath, kv)
+	err = client.Store(testPath, kv)
 	if err != nil {
-		t.Errorf("StoreKV with AppRole auth failed: %v", err)
+		t.Errorf("Store with AppRole auth failed: %v", err)
 	}
 
-	retrieved, err := client.GetKV(testPath)
+	retrieved, err := client.Get(testPath)
 	if err != nil {
-		t.Errorf("GetKV with AppRole auth failed: %v", err)
+		t.Errorf("Get with AppRole auth failed: %v", err)
 	}
 
 	if retrieved != nil {
@@ -209,15 +209,15 @@ func TestIntegration_works_with_hashicorp_vault(t *testing.T) {
 	testPath := "secret/data/ssh/vault-e2e-test"
 
 	// Store
-	err = client.StoreKV(testPath, kv)
+	err = client.Store(testPath, kv)
 	if err != nil {
-		t.Errorf("StoreKV failed: %v", err)
+		t.Errorf("Store failed: %v", err)
 	}
 
 	// Retrieve
-	retrieved, err := client.GetKV(testPath)
+	retrieved, err := client.Get(testPath)
 	if err != nil {
-		t.Errorf("GetKV failed: %v", err)
+		t.Errorf("Get failed: %v", err)
 	}
 
 	// Verify round-trip (only if retrieved is not nil)
@@ -256,15 +256,15 @@ func TestIntegration_works_with_openbao(t *testing.T) {
 	testPath := "secret/data/ssh/bao-e2e-test"
 
 	// Store
-	err = client.StoreKV(testPath, kv)
+	err = client.Store(testPath, kv)
 	if err != nil {
-		t.Errorf("StoreKV failed: %v", err)
+		t.Errorf("Store failed: %v", err)
 	}
 
 	// Retrieve
-	retrieved, err := client.GetKV(testPath)
+	retrieved, err := client.Get(testPath)
 	if err != nil {
-		t.Errorf("GetKV failed: %v", err)
+		t.Errorf("Get failed: %v", err)
 	}
 
 	// Verify round-trip (only if retrieved is not nil)
@@ -284,7 +284,7 @@ func TestIntegration_works_with_openbao(t *testing.T) {
 	client.client.Logical().Delete(testPath)
 }
 
-func TestGetKV_returns_path_not_found_error_for_nonexistent_path(t *testing.T) {
+func TestGet_returns_path_not_found_error_for_nonexistent_path(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 	client, err := NewVaultClient(cfg)
 	if err != nil {
@@ -292,7 +292,7 @@ func TestGetKV_returns_path_not_found_error_for_nonexistent_path(t *testing.T) {
 	}
 
 	// Test: Try to get from path that doesn't exist
-	_, err = client.GetKV("secret/data/ssh/does-not-exist-12345")
+	_, err = client.Get("secret/data/ssh/does-not-exist-12345")
 
 	// Verify: Should return ErrPathNotFound
 	if err != ErrPathNotFound {
@@ -300,7 +300,7 @@ func TestGetKV_returns_path_not_found_error_for_nonexistent_path(t *testing.T) {
 	}
 }
 
-func TestGetKV_rejects_malformed_vault_data_missing_private_key(t *testing.T) {
+func TestGet_rejects_malformed_vault_data_missing_private_key(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 	client, err := NewVaultClient(cfg)
 	if err != nil {
@@ -321,7 +321,7 @@ func TestGetKV_rejects_malformed_vault_data_missing_private_key(t *testing.T) {
 	}
 
 	// Test: Try to get the malformed data
-	_, err = client.GetKV(testPath)
+	_, err = client.Get(testPath)
 
 	// Verify: Should return ErrInvalidKeyFormat
 	if err != ErrInvalidKeyFormat {
@@ -332,7 +332,7 @@ func TestGetKV_rejects_malformed_vault_data_missing_private_key(t *testing.T) {
 	client.client.Logical().Delete(testPath)
 }
 
-func TestGetKV_rejects_malformed_vault_data_missing_public_key(t *testing.T) {
+func TestGet_rejects_malformed_vault_data_missing_public_key(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: config.ProviderVault}
 	client, err := NewVaultClient(cfg)
 	if err != nil {
@@ -353,7 +353,7 @@ func TestGetKV_rejects_malformed_vault_data_missing_public_key(t *testing.T) {
 	}
 
 	// Test: Try to get the malformed data
-	_, err = client.GetKV(testPath)
+	_, err = client.Get(testPath)
 
 	// Verify: Should return ErrInvalidKeyFormat
 	if err != ErrInvalidKeyFormat {
@@ -378,9 +378,9 @@ func TestCheckExists_returns_true_when_key_exists(t *testing.T) {
 		RequirePassphrase: false,
 	}
 	testPath := "secret/data/ssh/test-check-exists"
-	err = client.StoreKV(testPath, kv)
+	err = client.Store(testPath, kv)
 	if err != nil {
-		t.Fatalf("Setup failed: StoreKV error: %v", err)
+		t.Fatalf("Setup failed: Store error: %v", err)
 	}
 
 	// Test: Check if key exists
@@ -432,9 +432,9 @@ func TestCheckExists_handles_deleted_path(t *testing.T) {
 		RequirePassphrase: false,
 	}
 	testPath := "secret/data/ssh/test-check-deleted"
-	err = client.StoreKV(testPath, kv)
+	err = client.Store(testPath, kv)
 	if err != nil {
-		t.Fatalf("Setup failed: StoreKV error: %v", err)
+		t.Fatalf("Setup failed: Store error: %v", err)
 	}
 
 	// Delete the key
