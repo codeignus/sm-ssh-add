@@ -129,8 +129,8 @@ func NewVaultClient(cfg VaultApproleConfig) (*VaultClient, error) {
 	return &VaultClient{client: client}, nil
 }
 
-// GetKV retrieves key-value data from Vault KV v2 at the given path
-func (v *VaultClient) GetKV(path string) (*KeyValue, error) {
+// Get retrieves key-value data from Vault KV v2 at the given path
+func (v *VaultClient) Get(path string) (*KeyValue, error) {
 	secret, err := v.client.Logical().Read(path)
 	if err != nil {
 		return nil, wrapError(err, "failed to read from vault")
@@ -179,8 +179,8 @@ func (v *VaultClient) GetKV(path string) (*KeyValue, error) {
 	}, nil
 }
 
-// StoreKV stores key-value data in Vault KV v2 at the given path
-func (v *VaultClient) StoreKV(path string, kv *KeyValue) error {
+// Store stores key-value data in Vault KV v2 at the given path
+func (v *VaultClient) Store(path string, kv *KeyValue) error {
 	secretData := map[string]interface{}{
 		"private_key":        string(kv.PrivateKey),
 		"public_key":         string(kv.PublicKey),
