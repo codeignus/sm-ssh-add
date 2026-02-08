@@ -67,22 +67,9 @@ func TestKeyValue_Struct(t *testing.T) {
 	}
 }
 
-func TestGet_UnsupportedProvider(t *testing.T) {
+func TestInitProvider_UnsupportedProvider(t *testing.T) {
 	cfg := &config.Config{DefaultProvider: "aws"}
-	_, err := Get(cfg, "some/path")
-	if err == nil {
-		t.Error("expected error for unsupported provider, got nil")
-	}
-}
-
-func TestStore_UnsupportedProvider(t *testing.T) {
-	cfg := &config.Config{DefaultProvider: "aws"}
-	kv := &KeyValue{
-		PrivateKey:        []byte("test"),
-		PublicKey:         []byte("test"),
-		RequirePassphrase: false,
-	}
-	err := Store(cfg, "some/path", kv)
+	_, err := InitProvider(cfg)
 	if err == nil {
 		t.Error("expected error for unsupported provider, got nil")
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 // Generate creates a new SSH key pair and displays the public key
-func Generate(cfg *config.Config, args []string) error {
+func Generate(provider sm.Provider, cfg *config.Config, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("usage: sm-ssh-add generate [--require-passphrase] [--save-path] <path> [comment]")
 	}
@@ -56,7 +56,7 @@ func Generate(cfg *config.Config, args []string) error {
 
 	// If not regenerating, check if key already exists
 	if !regenerateKeypair {
-		exists, err := sm.CheckExists(cfg, path)
+		exists, err := provider.CheckExists(path)
 		if err != nil {
 			return fmt.Errorf("failed to check existing key: %w", err)
 		}
@@ -86,7 +86,7 @@ func Generate(cfg *config.Config, args []string) error {
 		Comment:           comment,
 	}
 
-	err = sm.Store(cfg, path, kv)
+	err = provider.Store(path, kv)
 	if err != nil {
 		return fmt.Errorf("failed to store key in vault: %w", err)
 	}

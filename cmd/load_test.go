@@ -4,7 +4,29 @@ import (
 	"testing"
 
 	"github.com/codeignus/sm-ssh-add/internal/config"
+	"github.com/codeignus/sm-ssh-add/internal/sm"
 )
+
+// mockProviderForLoad is a mock implementation of sm.Provider for testing
+type mockProviderForLoad struct{}
+
+func (m *mockProviderForLoad) Get(path string) (*sm.KeyValue, error) {
+	// Return mock key data for testing
+	return &sm.KeyValue{
+		PrivateKey:        []byte("mock-private-key"),
+		PublicKey:         []byte("mock-public-key"),
+		RequirePassphrase: false,
+		Comment:           "test",
+	}, nil
+}
+
+func (m *mockProviderForLoad) Store(path string, kv *sm.KeyValue) error {
+	return nil
+}
+
+func (m *mockProviderForLoad) CheckExists(path string) (bool, error) {
+	return false, nil
+}
 
 // TestLoadFromConfig_EmptyPaths tests --from-config with empty paths
 func TestLoadFromConfig_EmptyPaths(t *testing.T) {
@@ -12,46 +34,15 @@ func TestLoadFromConfig_EmptyPaths(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{},
 	}
+	provider := &mockProviderForLoad{}
 
-	err := Load(cfg, []string{"--from-config"})
+	err := Load(provider, cfg, []string{"--from-config"})
 
 	if err == nil {
 		t.Error("expected error for empty paths, got nil")
 	}
-	if err != nil && err.Error() != "no vault paths configured" {
-		t.Errorf("expected 'no vault paths configured' error, got: %v", err)
-	}
-}
-
-// TestLoadFromConfig_WithPaths tests --from-config with configured paths
-// This test requires real Vault instance - will run in GHA
-func TestLoadFromConfig_WithPaths(t *testing.T) {
-	cfg := &config.Config{
-		DefaultProvider: config.ProviderVault,
-		VaultPaths:      []string{"secret/ssh/test"},
-	}
-
-	err := Load(cfg, []string{"--from-config"})
-
-	// Will fail without real Vault, but tests argument parsing
-	if err != nil {
-		// Expected to fail on actual load, but not on argument validation
-		t.Logf("Expected (no Vault): %v", err)
-	}
-}
-
-// TestLoadDirectPath tests loading from a direct path argument
-func TestLoadDirectPath(t *testing.T) {
-	cfg := &config.Config{
-		DefaultProvider: config.ProviderVault,
-		VaultPaths:      []string{}, // Should not be used
-	}
-
-	err := Load(cfg, []string{"secret/ssh/github"})
-
-	// Will fail without real Vault, but tests argument parsing
-	if err != nil {
-		t.Logf("Expected (no Vault): %v", err)
+	if err != nil && err.Error() != "no paths configured" {
+		t.Errorf("expected 'no paths configured' error, got: %v", err)
 	}
 }
 
@@ -61,8 +52,9 @@ func TestLoadNoArguments(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{"secret/ssh/test"},
 	}
+	provider := &mockProviderForLoad{}
 
-	err := Load(cfg, []string{})
+	err := Load(provider, cfg, []string{})
 
 	if err == nil {
 		t.Error("expected error for no arguments, got nil")
@@ -75,8 +67,9 @@ func TestLoadBothConfigAndPath(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{"secret/ssh/test"},
 	}
+	provider := &mockProviderForLoad{}
 
-	err := Load(cfg, []string{"--from-config", "secret/ssh/github"})
+	err := Load(provider, cfg, []string{"--from-config", "secret/ssh/github"})
 
 	if err == nil {
 		t.Error("expected error for both --from-config and path, got nil")
@@ -92,8 +85,9 @@ func TestLoadUnknownFlag(t *testing.T) {
 		DefaultProvider: config.ProviderVault,
 		VaultPaths:      []string{"secret/ssh/test"},
 	}
+	provider := &mockProviderForLoad{}
 
-	err := Load(cfg, []string{"--unknown-flag"})
+	err := Load(provider, cfg, []string{"--unknown-flag"})
 
 	if err == nil {
 		t.Error("expected error for unknown flag, got nil")

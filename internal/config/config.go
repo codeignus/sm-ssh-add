@@ -76,22 +76,33 @@ func Read() (*Config, error) {
 	return &cfg, nil
 }
 
-// GetVaultPaths returns all configured vault paths
-func (c *Config) GetVaultPaths() []string {
-	if c.VaultPaths == nil {
+// GetPaths returns all configured paths for the default provider
+func (c *Config) GetPaths() []string {
+	switch c.DefaultProvider {
+	case ProviderVault:
+		if c.VaultPaths == nil {
+			return []string{}
+		}
+		return c.VaultPaths
+	// Future: add case for AWS, Azure, etc.
+	default:
 		return []string{}
 	}
-	return c.VaultPaths
 }
 
-// AddPath adds a new path to the vault paths list and writes the config file
+// AddPath adds a new path to the appropriate provider's path list and writes the config file
 func (c *Config) AddPath(path string) error {
-	// If path already exists, do nothing (no-op)
-	if slices.Contains(c.VaultPaths, path) {
-		return nil
+	switch c.DefaultProvider {
+	case ProviderVault:
+		// If path already exists, do nothing (no-op)
+		if slices.Contains(c.VaultPaths, path) {
+			return nil
+		}
+		c.VaultPaths = append(c.VaultPaths, path)
+	// Future: add case for AWS, Azure, etc.
+	default:
+		return fmt.Errorf("unsupported provider: %s", c.DefaultProvider)
 	}
-
-	c.VaultPaths = append(c.VaultPaths, path)
 
 	// Write the updated config to disk
 	configPath, err := getConfigFilePath()
